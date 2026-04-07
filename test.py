@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 import mediapipe as mp
 import time
 
@@ -23,6 +24,11 @@ cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     print("❌ Camera failed to open")
     exit()
+
+ret, frame = cap.read()
+h, w, _ = frame.shape
+canvas = np.zeros((h, w, 3), dtype=np.uint8)
+prev_point = None
 
 start_time = time.time()
 
@@ -67,11 +73,24 @@ with HandLandmarker.create_from_options(options) as landmarker:
                 up_names = [name for name, up in fingers.items() if up]
                 total = len(up_names)
 
+                if total == 1 and fingers["Index"]:
+                    index_tip = hand_landmarks[8]
+
+                    x, y = int(index_tip.x * w), int(index_tip.y * h)
+
+                    if prev_point is not None:
+                        cv2.line(canvas, prev_point, (x, y), (255, 0, 0), 5)
+
+                    prev_point = (x, y)
+                else:
+                    prev_point = None
+
                 cv2.putText(frame, f"{total} finger{'s' if total != 1 else ''}",
                             (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
                 cv2.putText(frame, " ".join(up_names),
                             (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-
+        
+        frame = cv2.add(frame, canvas)
         cv2.imshow("Hands (New API)", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
