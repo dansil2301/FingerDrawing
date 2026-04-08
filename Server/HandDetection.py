@@ -7,6 +7,7 @@ import numpy as np
 import mediapipe as mp
 
 from Server.Enums.RunningMode import RunningMode
+from Server.Gestures import Gestures
 
 
 class HandDetection:
@@ -21,6 +22,8 @@ class HandDetection:
         self.detector = vision.HandLandmarker.create_from_options(options)
 
         self.start_time = time.time()
+
+        self.gestures = Gestures()
 
     def find_hand(self, frame: np.ndarray):
         frame = cv2.flip(frame, 1)
@@ -38,6 +41,14 @@ class HandDetection:
     def _unpack_result(self, frame: np.ndarray, result: object):
         for hand_landmarks in result.hand_landmarks:
             frame = self._draw_key_point(frame, hand_landmarks)
+            test = self.gestures.index(hand_landmarks)
+
+            fingers = []
+            for i in test:
+                if test[i]:
+                    fingers.append(i)
+
+            cv2.putText(frame, f"value: {" ".join(fingers)}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
         return frame    
 
     def _draw_key_point(self, frame: np.ndarray, hand_landmarks: list):
