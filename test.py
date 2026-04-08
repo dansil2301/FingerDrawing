@@ -6,6 +6,7 @@ import time
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
+
 model_path = "hand_landmarker.task"
 
 BaseOptions = python.BaseOptions
@@ -50,7 +51,6 @@ with HandLandmarker.create_from_options(options) as landmarker:
 
         if result.hand_landmarks:
             for hand_landmarks in result.hand_landmarks:
-
                 # Draw landmarks
                 for lm in hand_landmarks:
                     x, y = int(lm.x * w), int(lm.y * h)
@@ -73,17 +73,17 @@ with HandLandmarker.create_from_options(options) as landmarker:
                 up_names = [name for name, up in fingers.items() if up]
                 total = len(up_names)
 
-                if total == 1 and fingers["Index"]:
-                    index_tip = hand_landmarks[8]
+                # if Index.is_only_index(hand_landmarks):
+                    
+                #     index_tip = hand_landmarks[8]
+                #     x, y = int(index_tip.x * w), int(index_tip.y * h)
 
-                    x, y = int(index_tip.x * w), int(index_tip.y * h)
+                #     if prev_point is not None:
+                #         cv2.line(canvas, prev_point, (x, y), (255, 0, 0), 5)
 
-                    if prev_point is not None:
-                        cv2.line(canvas, prev_point, (x, y), (255, 0, 0), 5)
-
-                    prev_point = (x, y)
-                else:
-                    prev_point = None
+                #     prev_point = (x, y)
+                # else:
+                #     prev_point = None
 
                 cv2.putText(frame, f"{total} finger{'s' if total != 1 else ''}",
                             (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
