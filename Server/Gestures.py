@@ -53,20 +53,20 @@ class Gestures:
             return False
 
         if position == HandPosition.UP:
-            is_right_hand = thumb_mcp.x < pinky_mcp.x
-            return thumb_tip.x < thumb_ip.x if is_right_hand else thumb_tip.x > thumb_ip.x
+            is_looking_right = thumb_mcp.x < pinky_mcp.x
+            return thumb_tip.x < thumb_ip.x if is_looking_right else thumb_tip.x > thumb_ip.x
 
         elif position == HandPosition.DOWN:
-            is_right_hand = thumb_mcp.x > pinky_mcp.x
-            return thumb_tip.x > thumb_ip.x if is_right_hand else thumb_tip.x < thumb_ip.x
+            is_looking_left = thumb_mcp.x > pinky_mcp.x
+            return thumb_tip.x > thumb_ip.x if is_looking_left else thumb_tip.x < thumb_ip.x
 
         elif position == HandPosition.RIGHT:
-            is_right_hand = thumb_mcp.y > pinky_mcp.y
-            return thumb_tip.y > thumb_ip.y if is_right_hand else thumb_tip.y < thumb_ip.y
+            is_looking_down = thumb_mcp.y > pinky_mcp.y
+            return thumb_tip.y > thumb_ip.y if is_looking_down else thumb_tip.y < thumb_ip.y
 
         elif position == HandPosition.LEFT:
-            is_right_hand = thumb_mcp.y < pinky_mcp.y
-            return thumb_tip.y < thumb_ip.y if is_right_hand else thumb_tip.y > thumb_ip.y
+            is_looking_up = thumb_mcp.y < pinky_mcp.y
+            return thumb_tip.y < thumb_ip.y if is_looking_up else thumb_tip.y > thumb_ip.y
 
         return False
 
