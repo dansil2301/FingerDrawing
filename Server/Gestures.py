@@ -28,12 +28,17 @@ class Gestures:
         # rar = rearanged
         if position == HandPosition.UP:
             rar_tip, rar_dip, rar_pip = -tip.y, -dip.y, -pip.y
+
         elif position == HandPosition.RIGHT:
+
             rar_tip, rar_dip, rar_pip = tip.x, dip.x, pip.x
+
         elif position == HandPosition.LEFT:
             rar_tip, rar_dip, rar_pip = -tip.x, -dip.x, -pip.x
+
         elif position == HandPosition.DOWN:
             rar_tip, rar_dip, rar_pip = tip.y, dip.y, pip.y
+            
         else:
             return False
 
@@ -69,14 +74,22 @@ class Gestures:
             return thumb_tip.y < thumb_ip.y if is_looking_up else thumb_tip.y > thumb_ip.y
 
         return False
-
-    def index(self, hand: list):
-        fingers = {
+    
+    def _fingers(self, hand: list):
+         return {
             'thumb': self._thumb_open(hand),
-            'index': self._finger_open(hand[8], hand[7], hand[6], hand[0], hand[13]),
-            'middle': self._finger_open(hand[12], hand[11], hand[10], hand[0], hand[13]),
-            'ring': self._finger_open(hand[16], hand[15], hand[14], hand[0], hand[13]),
-            'pinky': self._finger_open(hand[20], hand[19], hand[18], hand[0], hand[13]),
+            'index': self._finger_open(hand[8], hand[7], hand[6], hand[0], hand[9]),
+            'middle': self._finger_open(hand[12], hand[11], hand[10], hand[0], hand[9]),
+            'ring': self._finger_open(hand[16], hand[15], hand[14], hand[0], hand[9]),
+            'pinky': self._finger_open(hand[20], hand[19], hand[18], hand[0], hand[9]),
         }
 
-        return fingers
+    def index(self, hand: list):
+        fingers = self._fingers(hand)
+        # had to disable thumb to its highly movable nature, so basically if 
+        # middle, ring, pinky are down then index can be detected
+        return fingers['index'] and all([not fingers[f] for f in fingers if f != 'index' and f != 'thumb'])
+    
+    def fully_open(self, hand: list):
+        fingers = self._fingers(hand)
+        return all([fingers[f] for f in fingers])
