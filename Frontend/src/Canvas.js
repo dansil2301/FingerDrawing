@@ -1,0 +1,74 @@
+import './Canvas.css';
+import { useRef, useEffect } from "react";
+
+function Canvas() {
+  const videoRef = useRef(null);
+  const captureCanvasRef = useRef(null);
+
+  useEffect(() => {
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then((stream) => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      })
+      .catch((err) => {
+        console.error("Camera error:", err);
+      });
+
+    const interval = setInterval(() => {
+      sendFrame();
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const captureFrame = () => {
+    const video = videoRef.current;
+    const canvas = captureCanvasRef.current;
+
+    if (!video || !canvas || video.videoWidth === 0) return null;
+
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    ctx.drawImage(video, 0, 0);
+
+    return canvas;
+  };
+
+  const sendFrame = () => {
+    const canvas = captureFrame();
+    if (!canvas) return;
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+
+      const formData = new FormData();
+      formData.append("frame", blob, "frame.jpg");
+
+      console.log(formData)
+    }, "image/jpeg", 0.7);
+  };
+
+  return (
+    <div className="App">
+      <div className="CanvasWrapper">
+        <canvas className="MainCanvas" />
+
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          className="CameraFeed"
+        />
+
+        <canvas ref={captureCanvasRef} style={{ display: "none" }} />
+      </div>
+    </div>
+  );
+}
+
+export default Canvas;
