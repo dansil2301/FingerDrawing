@@ -53,8 +53,10 @@ class HandDetection:
             is_open = self.gestures.fully_open(hand_landmarks)
 
             if is_open:
+                print("open")
                 frame = self._draw_rectangle(frame, hand_landmarks)
             elif is_index:
+                print("index")
                 frame = self._draw_with_index(frame, hand_landmarks)
 
             frame = cv2.add(frame, self.canvas)
