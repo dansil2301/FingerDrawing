@@ -84,12 +84,12 @@ class Gestures:
             'pinky': self._finger_open(hand[20], hand[19], hand[18], hand[0], hand[9]),
         }
 
-    def index(self, hand: list):
+    def is_index(self, hand: list) -> bool:
         fingers = self._fingers(hand)
         # had to disable thumb to its highly movable nature, so basically if 
         # middle, ring, pinky are down then index can be detected
         return fingers['index'] and all([not fingers[f] for f in fingers if f != 'index' and f != 'thumb'])
     
-    def fully_open(self, hand: list):
+    def is_fully_open(self, hand: list) -> bool:
         fingers = self._fingers(hand)
         return all([fingers[f] for f in fingers])
