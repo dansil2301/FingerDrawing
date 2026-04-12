@@ -1,6 +1,6 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
 
-@dataclass
-class Point:
+
+class Point(BaseModel):
     x: float
     y: float

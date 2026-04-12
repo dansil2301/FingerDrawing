@@ -6,18 +6,20 @@ from mediapipe.tasks.python import vision
 import numpy as np
 import mediapipe as mp
 
+from Server.Enums.Action import Action
+from Server.domen.CoordinatesResponse import CoordinatesResponse
 from Server.GesturesCoords import GesturesCoords
 from Server.Enums.RunningMode import RunningMode
 from Server.Gestures import Gestures
 
 
 class HandDetection:
-    def __init__(self, model_path: str, running_mode: RunningMode, num_hands: int):
+    def __init__(self, model_path: str, running_mode: RunningMode):
         base_options = python.BaseOptions(model_asset_path=model_path)
         options = vision.HandLandmarkerOptions(
             base_options=base_options,
             running_mode=running_mode.value,
-            num_hands=num_hands
+            num_hands=1
         )
 
         self.detector = vision.HandLandmarker.create_from_options(options)
@@ -58,12 +60,19 @@ class HandDetection:
 
         result = self.detector.detect_for_video(mp_image, timestamp_ms)
         
+        coordinates = CoordinatesResponse()
+
         for hand_landmarks in result.hand_landmarks:
+
             if self.gestures.is_fully_open(hand_landmarks):
-                return GesturesCoords.rectangle_coords(frame, hand_landmarks)
+                coordinates.action = Action.ERASE.value
+                coordinates.coordinates = GesturesCoords.rectangle_coords(hand_landmarks)
+
             elif self.gestures.is_index(hand_landmarks):
-                return GesturesCoords.index_coords(frame, hand_landmarks)
-        return None
+                coordinates.action = Action.DRAW.value
+                coordinates.coordinates = GesturesCoords.index_coords(hand_landmarks)
+
+        return coordinates
         
 
     def _unpack_result(self, frame: np.ndarray, result: object):
@@ -79,10 +88,11 @@ class HandDetection:
         return frame
     
     def _draw_rectangle(self, frame: np.ndarray, hand_landmarks: list):
-        rectangle = GesturesCoords.rectangle_coords(frame, hand_landmarks)
+        h, w, _ = frame.shape
+        rectangle = GesturesCoords.rectangle_coords(hand_landmarks)
 
-        max_x, max_y = rectangle.ru_corner.x, rectangle.ru_corner.y
-        min_x, min_y = rectangle.ld_corner.x, rectangle.ld_corner.y
+        max_x, max_y = int(rectangle.ru_corner.x * w), int(rectangle.ru_corner.y * h)
+        min_x, min_y = int(rectangle.ld_corner.x * w), int(rectangle.ld_corner.y * h)
 
         self.canvas[min_y:max_y, min_x:max_x] = 0
 
@@ -90,12 +100,15 @@ class HandDetection:
         return frame
     
     def _draw_with_index(self, frame, hand_landmarks):
-        point = GesturesCoords.index_coords(frame, hand_landmarks)
+        h, w, _ = frame.shape
+        point = GesturesCoords.index_coords(hand_landmarks)
+
+        x, y = int(point.x * w), int(point.y * h)
 
         if self.prev_point is not None:
-            cv2.line(self.canvas, self.prev_point, (point.x, point.y), (255, 0, 0), 5)
+            cv2.line(self.canvas, self.prev_point, (x, y), (255, 0, 0), 5)
 
-        self.prev_point = (point.x, point.y)
+        self.prev_point = (x, y)
 
         return frame
 

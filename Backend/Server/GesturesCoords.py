@@ -6,28 +6,24 @@ from Server.DTO.Rectangle import Rectangle
 
 class GesturesCoords:
     @classmethod
-    def rectangle_coords(cls, frame: np.ndarray, hand_landmarks: list) -> Rectangle:
-        h, w, _ = frame.shape
-
+    def rectangle_coords(cls, hand_landmarks: list) -> Rectangle:
         all_x = [point.x for point in hand_landmarks]
         all_y = [point.y for point in hand_landmarks]
 
         min_x, max_x = min(all_x), max(all_x)
         min_y, max_y = min(all_y), max(all_y)
 
-        min_x, min_y = int(min_x * w), int(min_y * h)
-        max_x, max_y = int(max_x * w), int(max_y * h)
+        min_x, min_y = min_x, min_y
+        max_x, max_y = max_x, max_y
 
-        ru_corner = Point(max_x, max_y)
-        lf_corner = Point(min_x, min_y)
+        ru_corner = Point(x=max_x, y=max_y)
+        ld_corner = Point(x=min_x, y=min_y)
         
-        return Rectangle(ru_corner, lf_corner)
+        return Rectangle(ru_corner=ru_corner, ld_corner=ld_corner)
     
     @classmethod
-    def index_coords(cls, frame, hand_landmarks) -> Point:
-        h, w, _ = frame.shape
-
+    def index_coords(cls, hand_landmarks) -> Point:
         index_tip = hand_landmarks[8]
-        x, y = int(index_tip.x * w), int(index_tip.y * h)
+        x, y = index_tip.x, index_tip.y
 
-        return Point(x, y)
+        return Point(x=x, y=y)

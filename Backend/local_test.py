@@ -13,7 +13,7 @@ if not cap.isOpened():
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "hand_landmarker.task")
-hand_detector = HandDetection(MODEL_PATH, RunningMode.VIDEO, 1)
+hand_detector = HandDetection(MODEL_PATH, RunningMode.VIDEO)
 
 while cap.isOpened():
     ret, frame = cap.read()
