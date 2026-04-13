@@ -1,15 +1,14 @@
 import './Canvas.css';
-import { useRef, useEffect, useCallback } from "react";
+import CoordsStreamLog from '../Logic/CoordsStreamLog'
+import { useRef, useEffect } from "react";
 
 function Canvas() {
   const videoRef = useRef(null);
-  const captureCanvasRef = useRef(null);
+  const pcRef = useRef(null);
   
   const mainCanvas = useRef(null);
   const ctxRef = useRef(null);
   const prevPointRef = useRef(null);
-
-  const socketRef = useRef(null);
 
   const clearRectArea = (rect) => {
     const canvas = mainCanvas.current;
@@ -71,71 +70,35 @@ function Canvas() {
   }, []);
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8000/ws");
-    socketRef.current = socket;
+    const videoSocket = new CoordsStreamLog();
 
-    socket.onopen = () => {
-      console.log("WebSocket connected");
-    };
-
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
+    videoSocket.connect((data) => {
       if (data.action === "draw") {
         console.log(data.action);
         drawPoint(data.coordinates);
       }
-
-      if (data.action === "erase") {
+      else if (data.action === "erase") {
         clearRectArea(data.coordinates);
       }
-      
-      console.log("From backend:", event.data);
-    };
-
-    socket.onclose = () => {
-      console.log("WebSocket closed");
-    };
-
-    socket.onerror = (err) => {
-      console.error("WebSocket error:", err);
-    };
-
-    return () => socket.close();
-  }, []);
-
-  const captureFrame = useCallback(() => {
-    const video = videoRef.current;
-    const canvas = captureCanvasRef.current;
-
-    if (!video || !canvas || video.videoWidth === 0) return null;
-
-    const ctx = canvas.getContext("2d");
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    ctx.drawImage(video, 0, 0);
-
-    return canvas;
-  }, []);
-
-  const sendFrame = useCallback(() => {
-    const canvas = captureFrame();
-    if (!canvas) return;
-
-    const socket = socketRef.current;
-    if (!socket || socket.readyState !== 1) return;
-
-    canvas.toBlob((blob) => {
-      if (blob) {
-        socket.send(blob);
+      else {
+        prevPointRef.current = null;
       }
-    }, "image/jpeg", 0.5);
-  }, [captureFrame]);
+    });
+
+    return () => videoSocket.disconnect();
+  }, []);
 
   useEffect(() => {
-    navigator.mediaDevices.getUserMedia({ video: true })
+    const constraints = {
+      video: {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30 },
+      },
+      audio: false,
+    };
+
+    navigator.mediaDevices.getUserMedia(constraints)
       .then((stream) => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -163,8 +126,6 @@ function Canvas() {
           playsInline
           className="CameraFeed"
         />
-
-        <canvas ref={captureCanvasRef} style={{ display: "none" }} />
       </div>
     </div>
   );

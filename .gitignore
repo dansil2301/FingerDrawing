@@ -4,6 +4,7 @@
 __pycache__/
 
 ##### FE #####
+Frontend/.env
 Frontend/node_modules
 Frontend/.pnp
 Frontend/.pnp.js
