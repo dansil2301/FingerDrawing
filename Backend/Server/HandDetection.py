@@ -31,9 +31,15 @@ class HandDetection:
         self.canvas = None
         self.prev_point = None
 
-    def _frame_preprocessing(self, frame: np.ndarray) -> np.ndarray:
+    def _frame_preprocessing(self, frame: np.ndarray):
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        return mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+
+        rgb_frame = np.ascontiguousarray(rgb_frame)
+
+        return mp.Image(
+            image_format=mp.ImageFormat.SRGB,
+            data=rgb_frame
+        )
 
 
     def find_hand(self, frame: np.ndarray) -> np.ndarray:

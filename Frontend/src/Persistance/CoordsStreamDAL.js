@@ -6,7 +6,7 @@ class CoordsStreamDAL {
         const baseUrl =
         process.env.REACT_APP_BE_URL || "localhost:8000";
 
-        this.wsUrl = `${protocol}://${baseUrl}/ws`;
+        this.wsUrl = `${protocol}://${baseUrl}/coordinates`;
 
         this.socket = null;
         this.reconnectDelay = 1000;
@@ -37,7 +37,7 @@ class CoordsStreamDAL {
     handleMessage(onMessage, event) {
         try {
             const data = JSON.parse(event.data);
-        onMessage?.(data);
+            onMessage?.(data);
         } catch (e) {
             console.error("[WS] Parse error:", e);
         }

@@ -1,37 +1,39 @@
-import os
+import asyncio
 
 from fastapi import FastAPI, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
 
-from Backend.Server.domen.WebRTC import IceRequest, OfferRequest
+from Server.domen.WebRTC.IceRequest import IceRequest
+from Server.domen.WebRTC.OfferRequest import OfferRequest
 from Server.WebRTC import WebRTC
-from Server.Enums.RunningMode import RunningMode
-from Server.HandDetection import HandDetection
-from Server.DecodeBytes import DecodeBytes
 
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "hand_landmarker.task")
-hand_detector = HandDetection(MODEL_PATH, RunningMode.VIDEO)
 
 web_rtc = WebRTC()
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.websocket("/coordinates")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    web_rtc.websockets.append(websocket)
 
-    while True:
-        try:
-            data = await websocket.receive_bytes()
-            frame = DecodeBytes.decode(data)
-            response = hand_detector.find_hand_coords(frame)
-        except Exception as e:
-            print(e)
-            continue
-
-        await websocket.send_json(response.model_dump())
+    try:
+        while True:
+            await asyncio.sleep(1)
+    except Exception as e:
+        pass
+    finally:
+        print("WS send failed:", e)
+        # if websocket in web_rtc.websockets:
+        #     web_rtc.websockets.remove(websocket)
 
 
 @app.post("/stream-offer")

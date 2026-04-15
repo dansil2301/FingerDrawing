@@ -6,8 +6,8 @@ class VideoStreamLog {
         this.videoDal = new VideoStreamDal();
     }
 
-    connect() {
-        this.videoDal.connect();
+    connect(stream) {
+        this.videoDal.connect(stream);
     }
 
     close() {

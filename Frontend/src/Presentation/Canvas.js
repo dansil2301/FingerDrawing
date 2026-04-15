@@ -1,5 +1,6 @@
 import './Canvas.css';
 import CoordsStreamLog from '../Logic/CoordsStreamLog'
+import VideoStreamLog from '../Logic/VideoStreamLog'
 import { useRef, useEffect } from "react";
 
 function Canvas() {
@@ -73,8 +74,8 @@ function Canvas() {
     const videoSocket = new CoordsStreamLog();
 
     videoSocket.connect((data) => {
+      console.log(data.action);
       if (data.action === "draw") {
-        console.log(data.action);
         drawPoint(data.coordinates);
       }
       else if (data.action === "erase") {
@@ -89,6 +90,8 @@ function Canvas() {
   }, []);
 
   useEffect(() => {
+    const rtc = new VideoStreamLog()
+
     const constraints = {
       video: {
         width: { ideal: 1280 },
@@ -100,6 +103,7 @@ function Canvas() {
 
     navigator.mediaDevices.getUserMedia(constraints)
       .then((stream) => {
+        rtc.connect(stream);
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
@@ -108,12 +112,8 @@ function Canvas() {
         console.error("Camera error:", err);
       });
 
-    const interval = setInterval(() => {
-      sendFrame();
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [sendFrame]);
+    return () => rtc.close();
+  }, []);
 
   return (
     <div className="App">
