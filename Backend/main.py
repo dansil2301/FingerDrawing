@@ -2,6 +2,8 @@ import os
 
 from fastapi import FastAPI, WebSocket
 
+from Backend.Server.domen.WebRTC import IceRequest, OfferRequest
+from Server.WebRTC import WebRTC
 from Server.Enums.RunningMode import RunningMode
 from Server.HandDetection import HandDetection
 from Server.DecodeBytes import DecodeBytes
@@ -10,6 +12,8 @@ from Server.DecodeBytes import DecodeBytes
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "hand_landmarker.task")
 hand_detector = HandDetection(MODEL_PATH, RunningMode.VIDEO)
+
+web_rtc = WebRTC()
 
 app = FastAPI()
 
@@ -31,10 +35,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 @app.post("/stream-offer")
-async def stream_offer():
-    return {"message": "test"}
+async def stream_offer(offer: OfferRequest):
+    return await web_rtc.get_description(offer)
 
 
 @app.post("/ice-candidate")
-async def ice_candidate():
-    return {"message": "test"}
+async def ice_candidate(ice: IceRequest):
+    await web_rtc.get_ice(ice)

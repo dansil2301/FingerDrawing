@@ -52,7 +52,7 @@ class HandDetection:
         
         return frame
     
-    def find_hand_coords(self, frame: np.ndarray):
+    def find_hand_coords(self, frame: np.ndarray) -> CoordinatesResponse:
         frame = cv2.flip(frame, 1)
         mp_image = self._frame_preprocessing(frame)
         

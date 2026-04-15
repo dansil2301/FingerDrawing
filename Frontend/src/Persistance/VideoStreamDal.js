@@ -1,20 +1,16 @@
 class VideoStreamDal {
     constructor () {
-        const protocol =
-        process.env.REACT_APP_ENV === "d" ? "http" : "https";
-
-        const baseUrl =
-        process.env.REACT_APP_BE_URL || "localhost:8000";
-
+        const protocol = process.env.REACT_APP_ENV === "d" ? "http" : "https";
+        const baseUrl = process.env.REACT_APP_BE_URL || "localhost:8000";
         this.httpUrl = `${protocol}://${baseUrl}`;
+        
+        this.sessionId = crypto.randomUUID();  // user session generated on FE. Is it that safe? Probably no...
 
         this.iceCandidateQueue = [];
         this.remoteDescSet = false;
 
         this.rtc = new RTCPeerConnection({
-            iceServers: [
-                { urls: "stun:stun.l.google.com:19302" }
-            ]
+            iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
         });
 
         this.rtc.onconnectionstatechange = () => {
@@ -40,11 +36,9 @@ class VideoStreamDal {
             });
 
             const offer = await this.rtc.createOffer();
-
             await this.rtc.setLocalDescription(offer);
 
             const answer = await this.sendOffer();
-
             await this.rtc.setRemoteDescription(answer);
 
             this.remoteDescSet = true;
@@ -66,6 +60,7 @@ class VideoStreamDal {
             body: JSON.stringify({
                 sdp:  this.rtc.localDescription.sdp,
                 type: this.rtc.localDescription.type,
+                session_id: this.sessionId,
             }),
             headers: { "Content-Type": "application/json" },
         });
@@ -83,8 +78,11 @@ class VideoStreamDal {
         try {
             await fetch(`${this.httpUrl}/ice-candidate`, {
                 method: "POST",
-                body: JSON.stringify(event.candidate),
-                headers: { "Content-Type": "application/json" }
+                body: JSON.stringify({
+                    ...event.candidate,
+                    session_id: this.sessionId,  // ← added
+                }),
+                headers: { "Content-Type": "application/json" },
             });
         } catch (err) {
             console.error("ICE send failed:", err);
