@@ -8,9 +8,9 @@ import mediapipe as mp
 
 from Server.Enums.Action import Action
 from Server.domen.CoordinatesResponse import CoordinatesResponse
-from Server.GesturesCoords import GesturesCoords
+from Server.Gestures.GesturesCoords import GesturesCoords
 from Server.Enums.RunningMode import RunningMode
-from Server.Gestures import Gestures
+from Server.Gestures.GesturesPos import GesturesPos
 
 
 class HandDetection:
@@ -26,7 +26,7 @@ class HandDetection:
 
         self.start_time = time.time()
 
-        self.gestures = Gestures()
+        self.gestures_pos = GesturesPos()
 
         self.canvas = None
         self.prev_point = None
@@ -70,11 +70,11 @@ class HandDetection:
 
         for hand_landmarks in result.hand_landmarks:
 
-            if self.gestures.is_fully_open(hand_landmarks):
+            if self.gestures_pos.is_fully_open(hand_landmarks):
                 coordinates.action = Action.ERASE.value
                 coordinates.coordinates = GesturesCoords.rectangle_coords(hand_landmarks)
 
-            elif self.gestures.is_index(hand_landmarks):
+            elif self.gestures_pos.is_index(hand_landmarks):
                 coordinates.action = Action.DRAW.value
                 coordinates.coordinates = GesturesCoords.index_coords(hand_landmarks)
 
@@ -85,9 +85,9 @@ class HandDetection:
         for hand_landmarks in result.hand_landmarks:
             frame = self._draw_key_point(frame, hand_landmarks)
 
-            if self.gestures.is_fully_open(hand_landmarks):
+            if self.gestures_pos.is_fully_open(hand_landmarks):
                 frame = self._draw_rectangle(frame, hand_landmarks)
-            elif self.gestures.is_index(hand_landmarks):
+            elif self.gestures_pos.is_index(hand_landmarks):
                 frame = self._draw_with_index(frame, hand_landmarks)
 
             frame = cv2.add(frame, self.canvas)

@@ -1,7 +1,7 @@
 from Server.Enums.HandPosition import HandPosition
 
 
-class Gestures:
+class GesturesPos:
     def _hand_position(self, wrist, mid_mcp) -> HandPosition:
         # what can be: ✋, 🫲, 🫱 (this not AI I promise...)
         x_len = mid_mcp.x - wrist.x 
