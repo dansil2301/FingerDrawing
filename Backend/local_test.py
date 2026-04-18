@@ -6,6 +6,7 @@ from Server.Enums.RunningMode import RunningMode
 from Server.HandDetection import HandDetection
 
 
+# This is created to test hand detection without FE intervantion
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     print("Camera failed to open")
