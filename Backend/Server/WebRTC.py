@@ -1,7 +1,8 @@
+import asyncio
 import os
 
 from aiortc.sdp import candidate_from_sdp
-from aiortc import RTCPeerConnection, RTCSessionDescription
+from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
 from fastapi import WebSocket
 
 from Server.SessionHandler import SessionHandler
@@ -22,7 +23,9 @@ class WebRTC:
         self.sessions: dict[str, RTCPeerConnection] = {}
 
     def _make_pc(self, session_id: str) -> RTCPeerConnection:
-        pc = RTCPeerConnection()
+        pc = RTCPeerConnection(RTCConfiguration(
+            iceServers=[RTCIceServer(urls="stun:stun.l.google.com:19302")]
+        ))
 
         @pc.on("track")
         async def on_track(track):
@@ -43,20 +46,27 @@ class WebRTC:
                 frame = await track.recv()
                 img = frame.to_ndarray(format="bgr24")
             
-                result = self.hand_detector.find_hand_coords(img)
+                loop = asyncio.get_event_loop()
+                result = await loop.run_in_executor(
+                    None,                            # uses default ThreadPoolExecutor
+                    self.hand_detector.find_hand_coords,
+                    img
+                )
 
-                web_socket = self.session_handler.get_socket(session_id)
-                if web_socket:
+                session = self.session_handler.get(session_id)
+                if session:
                     try:
-                        await web_socket.send_json(result.model_dump())
+                        await session.web_socket.send_json(result.model_dump())
                     except Exception as e:
                         print(f"Error sending data on websocket {session_id}: {e}")
             except Exception:
                 break
 
     async def get_description(self, offer: OfferRequest) -> AnswerResponse:
-        pc = self._make_pc(offer.session_id)
-        self.sessions[offer.session_id] = pc
+        session_id = self.session_handler.generate_session_id()
+        session = self.session_handler.create(session_id)
+        pc = self._make_pc(session_id)
+        session.web_rtc = pc
 
         await pc.setRemoteDescription(RTCSessionDescription(sdp=offer.sdp, type=offer.type))
         answer = await pc.createAnswer()
@@ -64,11 +74,13 @@ class WebRTC:
         
         return AnswerResponse(
             sdp=pc.localDescription.sdp,
-            type=pc.localDescription.type
+            type=pc.localDescription.type,
+            session_id=session_id
         )
 
     async def get_ice(self, ice: IceRequest) -> None:
-        pc = self.sessions.get(ice.session_id)
+        session = self.session_handler.get(ice.session_id)
+        pc = session.web_rtc
         if pc is None:
             raise ValueError(f"No session: {ice.session_id}")
 
@@ -80,9 +92,10 @@ class WebRTC:
         await pc.addIceCandidate(candidate)
 
     async def _cleanup(self, session_id: str):
-        pc = self.sessions.pop(session_id, None)
+        pc = self.session_handler.get(session_id).web_rtc
         if pc and pc.signalingState != "closed":
             await pc.close()
+        self.session_handler.remove(session_id)
         print(f"[{session_id}] cleaned up")
 
     async def close_all(self):

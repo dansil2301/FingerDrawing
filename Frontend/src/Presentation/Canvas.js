@@ -71,49 +71,33 @@ function Canvas() {
   }, []);
 
   useEffect(() => {
-    const videoSocket = new CoordsStreamLog();
-
-    videoSocket.connect((data) => {
-      console.log(data.action);
-      if (data.action === "draw") {
-        drawPoint(data.coordinates);
-      }
-      else if (data.action === "erase") {
-        clearRectArea(data.coordinates);
-      }
-      else {
-        prevPointRef.current = null;
-      }
-    });
-
-    return () => videoSocket.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const rtc = new VideoStreamLog()
+    const rtc = new VideoStreamLog();
+    const ws = new CoordsStreamLog();
 
     const constraints = {
-      video: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        frameRate: { ideal: 30 },
-      },
-      audio: false,
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+        audio: false,
     };
 
     navigator.mediaDevices.getUserMedia(constraints)
-      .then((stream) => {
-        rtc.connect(stream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      })
-      .catch((err) => {
-        console.error("Camera error:", err);
-      });
+        .then(async (stream) => {
+            if (videoRef.current) videoRef.current.srcObject = stream;
 
-    return () => rtc.close();
-  }, []);
+            const sessionId = await rtc.connect(stream);
+
+            ws.connect(sessionId, (data) => {
+                if (data.action === "draw") drawPoint(data.coordinates);
+                else if (data.action === "erase") clearRectArea(data.coordinates);
+                else prevPointRef.current = null;
+            });
+        })
+        .catch(err => console.error("Camera error:", err));
+
+    return () => {
+        rtc.close();
+        ws.disconnect();
+    };
+  }, [drawPoint, clearRectArea]);
 
   return (
     <div className="App">

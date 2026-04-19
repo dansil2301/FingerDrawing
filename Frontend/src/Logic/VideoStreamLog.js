@@ -1,13 +1,12 @@
 import VideoStreamDal from "../Persistance/VideoStreamDal";
 
-
 class VideoStreamLog {
     constructor() {
         this.videoDal = new VideoStreamDal();
     }
 
-    connect(stream) {
-        this.videoDal.connect(stream);
+    async connect(stream) {
+        return await this.videoDal.connect(stream);  // returns session_id
     }
 
     close() {
@@ -15,4 +14,4 @@ class VideoStreamLog {
     }
 }
 
-export default VideoStreamLog
+export default VideoStreamLog;

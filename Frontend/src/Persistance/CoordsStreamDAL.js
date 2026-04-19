@@ -1,24 +1,22 @@
 class CoordsStreamDAL {
     constructor() {
-        const protocol =
-        process.env.REACT_APP_ENV === "d" ? "ws" : "wss";
-
-        const baseUrl =
-        process.env.REACT_APP_BE_URL || "localhost:8000";
-
-        this.wsUrl = `${protocol}://${baseUrl}/coordinates`;
+        const protocol = process.env.REACT_APP_ENV === "d" ? "ws" : "wss";
+        const baseUrl = process.env.REACT_APP_BE_URL || "localhost:8000";
+        this.wsBaseUrl = `${protocol}://${baseUrl}/coordinates`;
 
         this.socket = null;
         this.reconnectDelay = 1000;
         this.maxDelay = 10000;
         this.shouldReconnect = true;
+        this.sessionId = null;
     }
 
-    connect(onMessage) {
-        console.log("[WS] Connecting to:", this.wsUrl);
+    connect(sessionId, onMessage) {
+        this.sessionId = sessionId;
+        const url = `${this.wsBaseUrl}/${sessionId}`;
+        console.log("[WS] Connecting to:", url);
 
-        this.socket = new WebSocket(this.wsUrl);
-
+        this.socket = new WebSocket(url);
         this.setupHandlers(onMessage);
     }
 
@@ -45,19 +43,11 @@ class CoordsStreamDAL {
 
     handleClose(onMessage) {
         console.warn("[WS] Closed");
-
         if (!this.shouldReconnect) return;
 
         console.log(`[WS] Reconnecting in ${this.reconnectDelay}ms`);
-
-        setTimeout(() => {
-            this.connect(onMessage);
-        }, this.reconnectDelay);
-
-        this.reconnectDelay = Math.min(
-            this.reconnectDelay * 2,
-            this.maxDelay
-        );
+        setTimeout(() => this.connect(this.sessionId, onMessage), this.reconnectDelay);
+        this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxDelay);
     }
 
     handleError(err) {

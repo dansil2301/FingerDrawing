@@ -1,17 +1,17 @@
 import CoordsStreamDAL from "../Persistance/CoordsStreamDAL";
 
-class CoordsStreamLog{
+class CoordsStreamLog {
     constructor() {
-        this.coordsDal = new CoordsStreamDAL()
+        this.coordsDal = new CoordsStreamDAL();
     }
 
-    connect (onMessage) {
-        this.coordsDal.connect(onMessage)
+    connect(sessionId, onMessage) {
+        this.coordsDal.connect(sessionId, onMessage);
     }
 
-    disconnect () {
-        this.coordsDal.disconnect()
+    disconnect() {
+        this.coordsDal.disconnect();
     }
 }
 
-export default CoordsStreamLog
+export default CoordsStreamLog;

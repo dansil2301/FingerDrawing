@@ -3,33 +3,25 @@ import uuid
 from aiortc import RTCPeerConnection
 from fastapi import WebSocket
 
+from Server.DTO.SessionObject import SessionObject
 from Server.Utils.Singleton import SingletonMeta
 
 
 class SessionHandler(metaclass=SingletonMeta):
     def __init__(self):
-        self.websockets: dict[str, WebSocket] = {}
-        self.webrtcs: dict[str, RTCPeerConnection] = {}
+        self.sessions: dict[str, SessionObject] = {}
         
-    def generate_connection_id(self) -> str:
-        return uuid.uuid4()
-
-    def add_socket(self, id: str, websocket: WebSocket) -> None:
-        self.websockets[id] = websocket
-
-    def add_rtc(self, id: str, rtc: RTCPeerConnection) -> None:
-        self.webrtcs[id] = rtc
-
-    def get_socket(self, id: str) -> WebSocket:
-        return self.websockets.get(id, None)
+    def generate_session_id(self) -> str:
+        return str(uuid.uuid4())
     
-    def get_rtc(self, id: str) -> RTCPeerConnection:
-        return self.webrtcs.get(id, None)
-    
-    def remove_socket(self, id: str) -> None:
-        if id in self.websockets:
-            del self.websockets[id]
+    def create(self, id: str) -> SessionObject:
+        session = SessionObject()
+        self.sessions[id] = session
+        return session
 
-    def remove_socket(self, id: str) -> None:
-        if id in self.webrtcs:
-            del self.webrtcs[id]
+    def get(self, id: str) -> SessionObject:
+        return self.sessions.get(id, None)
+    
+    def remove(self, id: str) -> None:
+        if id in self.sessions:
+            del self.sessions[id]
