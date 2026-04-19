@@ -3,12 +3,14 @@ import asyncio
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
+from Server.SessionHandler import SessionHandler
 from Server.domen.WebRTC.IceRequest import IceRequest
 from Server.domen.WebRTC.OfferRequest import OfferRequest
 from Server.WebRTC import WebRTC
 
 
 web_rtc = WebRTC()
+websocket_handler = SessionHandler()
 
 app = FastAPI()
 
@@ -20,10 +22,10 @@ app.add_middleware(
 )
 
 
-@app.websocket("/coordinates")
-async def websocket_endpoint(websocket: WebSocket):
+@app.websocket("/coordinates/{socket_id}")
+async def websocket_endpoint(websocket: WebSocket, socket_id: str):
     await websocket.accept()
-    web_rtc.websockets.append(websocket)
+    websocket_handler.add_socket(socket_id, websocket)
 
     try:
         while True:
@@ -32,8 +34,7 @@ async def websocket_endpoint(websocket: WebSocket):
         pass
     finally:
         print("WS send failed:", e)
-        # if websocket in web_rtc.websockets:
-        #     web_rtc.websockets.remove(websocket)
+        websocket_handler.remove_socket(socket_id)
 
 
 @app.post("/stream-offer")

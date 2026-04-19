@@ -4,6 +4,7 @@ from aiortc.sdp import candidate_from_sdp
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from fastapi import WebSocket
 
+from Server.SessionHandler import SessionHandler
 from Server.Enums.RunningMode import RunningMode
 from Server.HandDetection import HandDetection
 from Server.domen.WebRTC.IceRequest import IceRequest
@@ -17,9 +18,8 @@ class WebRTC:
         MODEL_PATH = os.path.join(BASE_DIR, "hand_landmarker.task")
         self.hand_detector = HandDetection(MODEL_PATH, RunningMode.VIDEO)
 
+        self.session_handler = SessionHandler()
         self.sessions: dict[str, RTCPeerConnection] = {}
-
-        self.websockets: list[WebSocket] = []
 
     def _make_pc(self, session_id: str) -> RTCPeerConnection:
         pc = RTCPeerConnection()
@@ -45,14 +45,12 @@ class WebRTC:
             
                 result = self.hand_detector.find_hand_coords(img)
 
-                for ws in self.websockets[:]:
+                web_socket = self.session_handler.get_socket(session_id)
+                if web_socket:
                     try:
-                        #print(result)
-                        await ws.send_json(result.model_dump())
+                        await web_socket.send_json(result.model_dump())
                     except Exception as e:
-                        print(f"Error sending data: {e}")
-                        continue
-                        #self.websockets.remove(ws)
+                        print(f"Error sending data on websocket {session_id}: {e}")
             except Exception:
                 break
 
@@ -70,8 +68,8 @@ class WebRTC:
         )
 
     async def get_ice(self, ice: IceRequest) -> None:
-        rtc = self.sessions.get(ice.session_id)
-        if rtc is None:
+        pc = self.sessions.get(ice.session_id)
+        if pc is None:
             raise ValueError(f"No session: {ice.session_id}")
 
         candidate = candidate_from_sdp(ice.candidate)
@@ -79,7 +77,7 @@ class WebRTC:
         candidate.sdpMid = ice.sdpMid
         candidate.sdpMLineIndex = ice.sdpMLineIndex
 
-        await rtc.addIceCandidate(candidate)
+        await pc.addIceCandidate(candidate)
 
     async def _cleanup(self, session_id: str):
         pc = self.sessions.pop(session_id, None)
