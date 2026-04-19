@@ -10,9 +10,6 @@ from Server.Utils.Singleton import SingletonMeta
 class SessionHandler(metaclass=SingletonMeta):
     def __init__(self):
         self.sessions: dict[str, SessionObject] = {}
-        
-    def generate_session_id(self) -> str:
-        return str(uuid.uuid4())
     
     def create(self, id: str) -> SessionObject:
         session = SessionObject()

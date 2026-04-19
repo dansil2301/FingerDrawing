@@ -3,15 +3,16 @@ import asyncio
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
+from Server.WebSocketHandler import WebSocketHandler
 from Server.domen.WebRTC.AnswerResponse import AnswerResponse
 from Server.SessionHandler import SessionHandler
 from Server.domen.WebRTC.IceRequest import IceRequest
 from Server.domen.WebRTC.OfferRequest import OfferRequest
-from Server.WebRTC import WebRTC
+from Server.WebRTCHandler import WebRTCHandler
 
 
-web_rtc = WebRTC()
-session_handler = SessionHandler()
+web_rtc_handler = WebRTCHandler()
+web_socket_handler = WebSocketHandler()
 
 app = FastAPI()
 
@@ -25,28 +26,14 @@ app.add_middleware(
 
 @app.websocket("/coordinates/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
-    await websocket.accept()
-    session = session_handler.get(session_id)
-    if session is None:
-        await websocket.close()
-        return
-
-    session.web_socket = websocket
-
-    try:
-        while True:
-            await asyncio.sleep(1)
-    except Exception as e:
-        print("WS send failed:", e)
-    finally:
-        session_handler.remove(session_id)
+    web_socket_handler.connect(websocket, session_id)
 
 
 @app.post("/stream-offer")
 async def stream_offer(offer: OfferRequest) -> AnswerResponse:
-    return await web_rtc.get_description(offer)
+    return await web_rtc_handler.get_description(offer)
 
 
 @app.post("/ice-candidate")
 async def ice_candidate(ice: IceRequest) -> None:
-    await web_rtc.get_ice(ice)
+    await web_rtc_handler.get_ice(ice)

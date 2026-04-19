@@ -5,7 +5,6 @@ import { useRef, useEffect } from "react";
 
 function Canvas() {
   const videoRef = useRef(null);
-  const pcRef = useRef(null);
   
   const mainCanvas = useRef(null);
   const ctxRef = useRef(null);
@@ -83,9 +82,9 @@ function Canvas() {
         .then(async (stream) => {
             if (videoRef.current) videoRef.current.srcObject = stream;
 
-            const sessionId = await rtc.connect(stream);
+            await rtc.connect(stream);
 
-            ws.connect(sessionId, (data) => {
+            ws.connect((data) => {
                 if (data.action === "draw") drawPoint(data.coordinates);
                 else if (data.action === "erase") clearRectArea(data.coordinates);
                 else prevPointRef.current = null;

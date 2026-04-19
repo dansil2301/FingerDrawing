@@ -5,8 +5,8 @@ class CoordsStreamLog {
         this.coordsDal = new CoordsStreamDAL();
     }
 
-    connect(sessionId, onMessage) {
-        this.coordsDal.connect(sessionId, onMessage);
+    connect(onMessage) {
+        this.coordsDal.connect(onMessage);
     }
 
     disconnect() {

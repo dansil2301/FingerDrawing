@@ -6,7 +6,7 @@ class VideoStreamLog {
     }
 
     async connect(stream) {
-        return await this.videoDal.connect(stream);  // returns session_id
+        await this.videoDal.connect(stream);  // returns session_id
     }
 
     close() {

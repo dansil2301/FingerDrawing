@@ -45,15 +45,11 @@ class VideoStreamDal {
             const answer = await this.sendOffer();
             await this.rtc.setRemoteDescription(answer);
 
-            SessionStore.set(answer.session_id);  // ← store it here
-
             this.remoteDescSet = true;
             for (const candidate of this.iceCandidateQueue) {
                 await this.sendIce({ candidate });
             }
             this.iceCandidateQueue = [];
-
-            return answer.session_id;             // ← also return it
         } catch (err) {
             console.error("WebRTC connect failed:", err);
             this.close();
@@ -67,7 +63,7 @@ class VideoStreamDal {
             body: JSON.stringify({
                 sdp: this.rtc.localDescription.sdp,
                 type: this.rtc.localDescription.type,
-                session_id: null,  // server assigns it
+                session_id: SessionStore.get(),
             }),
             headers: { "Content-Type": "application/json" },
         });

@@ -1,3 +1,6 @@
+import SessionStore from './SessionStore';
+
+
 class CoordsStreamDAL {
     constructor() {
         const protocol = process.env.REACT_APP_ENV === "d" ? "ws" : "wss";
@@ -8,12 +11,10 @@ class CoordsStreamDAL {
         this.reconnectDelay = 1000;
         this.maxDelay = 10000;
         this.shouldReconnect = true;
-        this.sessionId = null;
     }
 
-    connect(sessionId, onMessage) {
-        this.sessionId = sessionId;
-        const url = `${this.wsBaseUrl}/${sessionId}`;
+    connect(onMessage) {
+        const url = `${this.wsBaseUrl}/${SessionStore.get()}`;
         console.log("[WS] Connecting to:", url);
 
         this.socket = new WebSocket(url);
@@ -46,7 +47,7 @@ class CoordsStreamDAL {
         if (!this.shouldReconnect) return;
 
         console.log(`[WS] Reconnecting in ${this.reconnectDelay}ms`);
-        setTimeout(() => this.connect(this.sessionId, onMessage), this.reconnectDelay);
+        setTimeout(() => this.connect(SessionStore.get(), onMessage), this.reconnectDelay);
         this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxDelay);
     }
 

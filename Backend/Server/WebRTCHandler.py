@@ -13,14 +13,13 @@ from Server.domen.WebRTC.AnswerResponse import AnswerResponse
 from Server.domen.WebRTC.OfferRequest import OfferRequest
 
 
-class WebRTC:
+class WebRTCHandler:
     def __init__(self):
         BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         MODEL_PATH = os.path.join(BASE_DIR, "hand_landmarker.task")
         self.hand_detector = HandDetection(MODEL_PATH, RunningMode.VIDEO)
 
         self.session_handler = SessionHandler()
-        self.sessions: dict[str, RTCPeerConnection] = {}
 
     def _make_pc(self, session_id: str) -> RTCPeerConnection:
         pc = RTCPeerConnection(RTCConfiguration(
@@ -48,7 +47,7 @@ class WebRTC:
             
                 loop = asyncio.get_event_loop()
                 result = await loop.run_in_executor(
-                    None,                            # uses default ThreadPoolExecutor
+                    None,
                     self.hand_detector.find_hand_coords,
                     img
                 )
@@ -63,9 +62,8 @@ class WebRTC:
                 break
 
     async def get_description(self, offer: OfferRequest) -> AnswerResponse:
-        session_id = self.session_handler.generate_session_id()
-        session = self.session_handler.create(session_id)
-        pc = self._make_pc(session_id)
+        session = self.session_handler.create(offer.session_id)
+        pc = self._make_pc(offer.session_id)
         session.web_rtc = pc
 
         await pc.setRemoteDescription(RTCSessionDescription(sdp=offer.sdp, type=offer.type))
@@ -74,8 +72,7 @@ class WebRTC:
         
         return AnswerResponse(
             sdp=pc.localDescription.sdp,
-            type=pc.localDescription.type,
-            session_id=session_id
+            type=pc.localDescription.type
         )
 
     async def get_ice(self, ice: IceRequest) -> None:
@@ -92,12 +89,12 @@ class WebRTC:
         await pc.addIceCandidate(candidate)
 
     async def _cleanup(self, session_id: str):
-        pc = self.session_handler.get(session_id).web_rtc
+        session = self.session_handler.get(session_id)
+        if session is None:
+            return
+            
+        pc = session.web_rtc
         if pc and pc.signalingState != "closed":
             await pc.close()
         self.session_handler.remove(session_id)
         print(f"[{session_id}] cleaned up")
-
-    async def close_all(self):
-        for session_id in list(self.sessions):
-            await self._cleanup(session_id)
