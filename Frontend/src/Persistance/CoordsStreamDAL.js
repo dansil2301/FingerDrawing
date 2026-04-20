@@ -8,9 +8,6 @@ class CoordsStreamDAL {
         this.wsBaseUrl = `${protocol}://${baseUrl}/coordinates`;
 
         this.socket = null;
-        this.reconnectDelay = 1000;
-        this.maxDelay = 10000;
-        this.shouldReconnect = true;
     }
 
     connect(onMessage) {
@@ -24,13 +21,12 @@ class CoordsStreamDAL {
     setupHandlers(onMessage) {
         this.socket.onopen = this.handleOpen.bind(this);
         this.socket.onmessage = this.handleMessage.bind(this, onMessage);
-        this.socket.onclose = this.handleClose.bind(this, onMessage);
+        this.socket.onclose = this.handleClose.bind(this);
         this.socket.onerror = this.handleError.bind(this);
     }
 
     handleOpen() {
         console.log("[WS] Connected");
-        this.reconnectDelay = 1000;
     }
 
     handleMessage(onMessage, event) {
@@ -42,13 +38,8 @@ class CoordsStreamDAL {
         }
     }
 
-    handleClose(onMessage) {
+    handleClose() {
         console.warn("[WS] Closed");
-        if (!this.shouldReconnect) return;
-
-        console.log(`[WS] Reconnecting in ${this.reconnectDelay}ms`);
-        setTimeout(() => this.connect(SessionStore.get(), onMessage), this.reconnectDelay);
-        this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxDelay);
     }
 
     handleError(err) {
@@ -57,7 +48,6 @@ class CoordsStreamDAL {
     }
 
     disconnect() {
-        this.shouldReconnect = false;
         this.socket?.close();
     }
 }
