@@ -26,7 +26,7 @@ app.add_middleware(
 
 @app.websocket("/coordinates/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
-    web_socket_handler.connect(websocket, session_id)
+    await web_socket_handler.connect(websocket, session_id)
 
 
 @app.post("/stream-offer")

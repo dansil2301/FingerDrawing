@@ -7,7 +7,7 @@ const CONSTRAINTS = {
   audio: false,
 };
 
-export function useMediaStream({ onDraw, onErase, onReset }) {
+export function useMediaStream({ onDraw, onErase, onReset, onReady, onError }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -25,8 +25,13 @@ export function useMediaStream({ onDraw, onErase, onReset }) {
           else if (data.action === "erase") onErase(data.coordinates);
           else onReset();
         });
+
+        onReady?.();
       })
-      .catch(err => console.error("Camera error:", err));
+      .catch((err) => {
+        console.error("Camera error:", err);
+        onError?.(err);
+      });
 
     return () => {
       rtc.close();
