@@ -1,0 +1,58 @@
+.overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 82vw;
+  height: 82vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 20px;
+  padding: 3rem 3.5rem;
+  z-index: 10;
+}
+
+.overlay img {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1);}
+  50% { opacity: 0.4; transform: scale(0.95); }
+}
+
+.pulse {
+  filter: invert(1);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.overlay h2 {
+  color: white;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.overlay p {
+  color: #aaa;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.overlay button {
+  padding: 0.5rem 1.5rem;
+  background: white;
+  color: black;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.overlay button:hover {
+  background: #ddd;
+}
