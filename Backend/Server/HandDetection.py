@@ -69,6 +69,8 @@ class HandDetection:
         coordinates = CoordinatesResponse()
 
         for hand_landmarks in result.hand_landmarks:
+            # Always pass finger tips to FE
+            coordinates.finger_tips = GesturesCoords.finger_tips(hand_landmarks)
 
             if self.gestures_pos.is_fully_open(hand_landmarks):
                 coordinates.action = Action.ERASE.value

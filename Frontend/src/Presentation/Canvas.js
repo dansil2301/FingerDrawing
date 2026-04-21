@@ -8,20 +8,22 @@ function Canvas() {
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState(null);
 
-  const { mainCanvas, drawPoint, clearRectArea, resetStroke } = useCanvasDrawing();
+  const { mainCanvasRef, overlayCanvasRef, drawFingerTips, drawPoint, clearRectArea, resetStroke } = useCanvasDrawing();
 
   const { videoRef } = useMediaStream({
-    onDraw:   drawPoint,
-    onErase:  clearRectArea,
-    onReset:  resetStroke,
-    onReady:  () => setStatus("ready"),
-    onError:  (err) => { setError(err); setStatus("error"); },
+    onFingers: drawFingerTips,
+    onDraw:    drawPoint,
+    onErase:   clearRectArea,
+    onReset:   resetStroke,
+    onReady:   () => setStatus("ready"),
+    onError:   (err) => { setError(err); setStatus("error"); },
   });
 
   return (
     <div className="App">
       <div className="CanvasWrapper">
-        <canvas ref={mainCanvas} className="MainCanvas" />
+        <canvas ref={overlayCanvasRef} className="OverlayCanvas" />
+        <canvas ref={mainCanvasRef} className="MainCanvas" />
         <video ref={videoRef} autoPlay playsInline className="CameraFeed" />
         <LoadingGuard status={status} error={error} />
       </div>

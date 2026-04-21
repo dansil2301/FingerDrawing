@@ -7,7 +7,7 @@ const CONSTRAINTS = {
   audio: false,
 };
 
-export function useMediaStream({ onDraw, onErase, onReset, onReady, onError }) {
+export function useMediaStream({ onFingers, onDraw, onErase, onReset, onReady, onError }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -20,6 +20,7 @@ export function useMediaStream({ onDraw, onErase, onReset, onReady, onError }) {
         manager.connect(          
           stream,
           (data) => {
+              onFingers(data.finger_tips);
               if (data.action === "draw") onDraw(data.coordinates);
               else if (data.action === "erase") onErase(data.coordinates);
               else onReset();

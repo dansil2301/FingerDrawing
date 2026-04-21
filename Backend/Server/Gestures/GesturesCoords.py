@@ -1,10 +1,21 @@
-import numpy as np
+from typing import List
 
 from Server.DTO.Point import Point
 from Server.DTO.Rectangle import Rectangle
 
 
 class GesturesCoords:
+    @classmethod
+    def finger_tips(cls, hand_landmarks: list) -> List[Point]:
+        tip_indices = [4, 8, 12, 16, 20]
+
+        coordinates = [
+            Point(x=hand_landmarks[i].x, y=hand_landmarks[i].y)
+            for i in tip_indices
+        ]
+
+        return coordinates
+
     @classmethod
     def rectangle_coords(cls, hand_landmarks: list) -> Rectangle:
         all_x = [point.x for point in hand_landmarks]

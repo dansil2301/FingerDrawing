@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from pydantic import BaseModel
 
@@ -9,3 +9,4 @@ from Server.DTO.Rectangle import Rectangle
 class CoordinatesResponse(BaseModel):
     action: Optional[str] = None
     coordinates: Optional[Union[Rectangle, Point]] = None
+    finger_tips: Optional[List[Point]] = None
