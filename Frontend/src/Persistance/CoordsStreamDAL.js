@@ -33,8 +33,9 @@ class CoordsStreamDAL {
         try {
             const data = JSON.parse(event.data);
             onMessage?.(data);
-        } catch (e) {
-            console.error("[WS] Parse error:", e);
+        } catch (err) {
+            console.error("[WS] Parse error:", err);
+            throw err;
         }
     }
 
@@ -45,6 +46,7 @@ class CoordsStreamDAL {
     handleError(err) {
         console.error("[WS] Error:", err);
         this.socket.close();
+        throw err;
     }
 
     disconnect() {

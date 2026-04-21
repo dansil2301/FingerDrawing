@@ -9,7 +9,7 @@ class VideoStreamDal {
         this.rtc = null;
     }
 
-    _createPc() {
+    _createPc(onStateChange) {
         this.iceCandidateQueue = [];
         this.remoteDescSet = false;
 
@@ -18,23 +18,25 @@ class VideoStreamDal {
         });
 
         this.rtc.onconnectionstatechange = () => {
-            console.log("Connection:", this.rtc.connectionState);
+            const state = this.rtc.connectionState;
+            console.log("[RTC] Connection:", this.rtc.connectionState);
+            onStateChange?.(state);
         };
 
-        this.rtc.onicecandidate = this.setIce.bind(this);
+        this.rtc.onicecandidate = this._setIce.bind(this);
     }
 
-    setIce(event) {
+    _setIce(event) {
         if (!event.candidate) return;
         if (this.remoteDescSet) {
-            this.sendIce(event);
+            this._sendIce(event);
         } else {
             this.iceCandidateQueue.push(event.candidate);
         }
     }
 
-    async connect(stream) {
-        this._createPc();
+    async connect(stream, onStateChange) {
+        this._createPc(onStateChange);
 
         try {
             stream.getTracks().forEach(track => this.rtc.addTrack(track, stream));
@@ -42,22 +44,22 @@ class VideoStreamDal {
             const offer = await this.rtc.createOffer();
             await this.rtc.setLocalDescription(offer);
 
-            const answer = await this.sendOffer();
+            const answer = await this._sendOffer();
             await this.rtc.setRemoteDescription(answer);
 
             this.remoteDescSet = true;
             for (const candidate of this.iceCandidateQueue) {
-                await this.sendIce({ candidate });
+                await this._sendIce({ candidate });
             }
             this.iceCandidateQueue = [];
         } catch (err) {
-            console.error("WebRTC connect failed:", err);
+            console.error("[RTC] WebRTC connect failed:", err);
             this.close();
             throw err;
         }
     }
 
-    async sendOffer() {
+    async _sendOffer() {
         const response = await fetch(`${this.httpUrl}/stream-offer`, {
             method: "POST",
             body: JSON.stringify({
@@ -72,7 +74,7 @@ class VideoStreamDal {
         return response.json();
     }
 
-    async sendIce(event) {
+    async _sendIce(event) {
         if (!event.candidate) return;
 
         await fetch(`${this.httpUrl}/ice-candidate`, {
@@ -92,7 +94,7 @@ class VideoStreamDal {
         this.rtc.getSenders().forEach(sender => sender.track?.stop());
         this.rtc.close();
         SessionStore.clear();
-        console.log(`[WebRTC] Connection closed`);
+        console.log(`[RTC] Connection closed`);
     }
 }
 

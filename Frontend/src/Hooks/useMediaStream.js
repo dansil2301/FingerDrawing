@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
-import VideoStreamLog from "../Logic/VideoStreamLog";
-import CoordsStreamLog from "../Logic/CoordsStreamLog";
+import ConnectionManager from "../Logic/ConnectionManager";
+
 
 const CONSTRAINTS = {
   video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
@@ -11,32 +11,38 @@ export function useMediaStream({ onDraw, onErase, onReset, onReady, onError }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
-    const rtc = new VideoStreamLog();
-    const ws = new CoordsStreamLog();
+    const manager = new ConnectionManager();
 
     navigator.mediaDevices.getUserMedia(CONSTRAINTS)
       .then(async (stream) => {
         if (videoRef.current) videoRef.current.srcObject = stream;
 
-        await rtc.connect(stream);
-
-        ws.connect((data) => {
-          if (data.action === "draw") onDraw(data.coordinates);
-          else if (data.action === "erase") onErase(data.coordinates);
-          else onReset();
-        });
-
-        onReady?.();
+        manager.connect(          
+          stream,
+          (data) => {
+              if (data.action === "draw") onDraw(data.coordinates);
+              else if (data.action === "erase") onErase(data.coordinates);
+              else onReset();
+          },
+          (state, message) => {
+              if (state === "connected") onReady();
+              else if (state === "fatal") onError({ type: "fatal", message });
+              else if (state === "error") onError({ type: "error", message });
+              else if (state === "reconnecting") onError({ type: "reconnecting", message });
+          }
+        );
       })
       .catch((err) => {
-        console.error("Camera error:", err);
-        onError?.(err);
+          onError({
+              type: "fatal",
+              message:
+                  err.name === "NotAllowedError" ? "Camera access was denied." :
+                  err.name === "NotFoundError"   ? "No camera found on this device." :
+                  "Could not access camera.",
+          });
       });
 
-    return () => {
-      rtc.close();
-      ws.disconnect();
-    };
+      return () => manager.disconnect();
   }, []);
 
   return { videoRef };
