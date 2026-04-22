@@ -49,6 +49,7 @@ class WebRTCHandler:
                 result = await loop.run_in_executor(
                     None,
                     self.hand_detector.find_hand_coords,
+                    session_id,
                     img
                 )
 

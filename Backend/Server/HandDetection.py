@@ -6,6 +6,7 @@ from mediapipe.tasks.python import vision
 import numpy as np
 import mediapipe as mp
 
+from Server.Gestures.CoordsSmoothing import CoordsSmoothing
 from Server.Enums.Action import Action
 from Server.domen.CoordinatesResponse import CoordinatesResponse
 from Server.Gestures.GesturesCoords import GesturesCoords
@@ -27,6 +28,7 @@ class HandDetection:
         self.start_time = time.time()
 
         self.gestures_pos = GesturesPos()
+        self.coords_smoothing = CoordsSmoothing()
 
         self.canvas = None
         self.prev_point = None
@@ -58,7 +60,7 @@ class HandDetection:
         
         return frame
     
-    def find_hand_coords(self, frame: np.ndarray) -> CoordinatesResponse:
+    def find_hand_coords(self, session_id: str, frame: np.ndarray) -> CoordinatesResponse:
         frame = cv2.flip(frame, 1)
         mp_image = self._frame_preprocessing(frame)
         
@@ -69,16 +71,18 @@ class HandDetection:
         coordinates = CoordinatesResponse()
 
         for hand_landmarks in result.hand_landmarks:
+            smoothed_landmarks = self.coords_smoothing.smooth(session_id, hand_landmarks)
+
             # Always pass finger tips to FE
-            coordinates.finger_tips = GesturesCoords.finger_tips(hand_landmarks)
+            coordinates.finger_tips = GesturesCoords.finger_tips(smoothed_landmarks)
 
-            if self.gestures_pos.is_fully_open(hand_landmarks):
+            if self.gestures_pos.is_fully_open(smoothed_landmarks):
                 coordinates.action = Action.ERASE.value
-                coordinates.coordinates = GesturesCoords.rectangle_coords(hand_landmarks)
+                coordinates.coordinates = GesturesCoords.rectangle_coords(smoothed_landmarks)
 
-            elif self.gestures_pos.is_index(hand_landmarks):
+            elif self.gestures_pos.is_index(smoothed_landmarks):
                 coordinates.action = Action.DRAW.value
-                coordinates.coordinates = GesturesCoords.index_coords(hand_landmarks)
+                coordinates.coordinates = GesturesCoords.index_coords(smoothed_landmarks)
 
         return coordinates
         
