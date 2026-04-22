@@ -1,8 +1,3 @@
-import uuid
-
-from aiortc import RTCPeerConnection
-from fastapi import WebSocket
-
 from Server.DTO.SessionObject import SessionObject
 from Server.Utils.Singleton import SingletonMeta
 
