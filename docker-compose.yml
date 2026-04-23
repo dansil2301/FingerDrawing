@@ -9,7 +9,7 @@ services:
     command: sh -c "npm install && npm run build"
     volumes:
       - ./Frontend:/app
-      - ./Frontend/build:/app/build
+      - frontend_build:/app/build
     restart: "no"
 
   nginx:
@@ -18,8 +18,11 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./frontend/build:/usr/share/nginx/html
+      - ./Nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - frontend_build:/usr/share/nginx/html:ro
     depends_on:
       - backend
       - frontend-builder
+
+volumes:
+  frontend_build:
