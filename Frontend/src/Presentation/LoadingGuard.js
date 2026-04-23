@@ -1,6 +1,5 @@
 import './LoadingGuard.css';
 import { ERROR_MESSAGES } from '../Constants/ErrorMessages';
-import { memo } from "react";
 
 
 function LoadingGuard({ status, error }) {
@@ -28,4 +27,4 @@ function LoadingGuard({ status, error }) {
     );
 }
 
-export default memo(LoadingGuard);
+export default LoadingGuard
