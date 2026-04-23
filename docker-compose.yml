@@ -4,13 +4,13 @@ services:
     container_name: ai-backend
     restart: always
 
-  # frontend-builder:
-  #   build: ./Frontend
-  #   command: sh -c "npm install && npm run build"
-  #   volumes:
-  #     - ./Frontend:/app
-  #     - ./Frontend/build:/app/build
-  #   restart: "no"
+  frontend-builder:
+    build: ./Frontend
+    command: sh -c "npm install && npm run build"
+    volumes:
+      - ./Frontend:/app
+      - ./Frontend/build:/app/build
+    restart: "no"
 
   nginx:
     image: nginx:alpine
