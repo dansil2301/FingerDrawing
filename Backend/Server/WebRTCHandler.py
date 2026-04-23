@@ -23,7 +23,19 @@ class WebRTCHandler:
 
     def _make_pc(self, session_id: str) -> RTCPeerConnection:
         pc = RTCPeerConnection(RTCConfiguration(
-            iceServers=[RTCIceServer(urls="stun:stun.l.google.com:19302")]
+            iceServers=[
+                RTCIceServer(urls="stun:stun.l.google.com:19302"),
+                RTCIceServer(
+                    urls="turn:openrelay.metered.ca:80",
+                    username="openrelayproject",
+                    credential="openrelayproject"
+                ),
+                RTCIceServer(
+                    urls="turn:openrelay.metered.ca:443",
+                    username="openrelayproject",
+                    credential="openrelayproject"
+                ),
+            ]
         ))
 
         @pc.on("track")
