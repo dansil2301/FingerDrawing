@@ -18,6 +18,7 @@ class VideoStreamDal {
         const iceServers = isDev
             ? [{ urls: "stun:stun.l.google.com:19302" }]
             : [
+                { urls: "stun:stun.l.google.com:19302" },
                 {
                     urls: [
                         "turn:openrelay.metered.ca:80",
@@ -29,10 +30,7 @@ class VideoStreamDal {
                 }
             ];
 
-        this.rtc = new RTCPeerConnection({
-            iceServers,
-            ...(isDev ? {} : { iceTransportPolicy: "relay" })
-        });
+        this.rtc = new RTCPeerConnection({ iceServers });
 
         this.rtc.onconnectionstatechange = () => {
             const state = this.rtc.connectionState;
@@ -65,7 +63,8 @@ class VideoStreamDal {
             const answer = await this._sendOffer();
             await this.rtc.setRemoteDescription(answer);
             console.log("[RTC] Offer is recieved and set")
-
+            
+            console.log(`[RTC] Ice candidates queue ${this.iceCandidateQueue}`)
             this.remoteDescSet = true;
             for (const candidate of this.iceCandidateQueue) {
                 console.log(`[RTC] sending candidate ${candidate}`)
