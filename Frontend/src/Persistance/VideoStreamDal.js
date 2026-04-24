@@ -40,16 +40,11 @@ class VideoStreamDal {
             onStateChange?.(state);
         };
 
-        this.rtc.onicecandidate = this._setIce.bind(this);
-    }
-
-    _setIce(event) {
-        if (!event.candidate) return;
-        if (this.remoteDescSet) {
-            this._sendIce(event);
-        } else {
-            this.iceCandidateQueue.push(event.candidate);
-        }
+        this.rtc.onicecandidate = (event) => {
+            if (!event.candidate) return;
+            console.log("[RTC] ICE candidate:", event.candidate.candidate);
+            this._sendIce(event); 
+        };
     }
 
     async connect(stream, onStateChange) {
@@ -64,11 +59,6 @@ class VideoStreamDal {
             const answer = await this._sendOffer();
             await this.rtc.setRemoteDescription(answer);
 
-            this.remoteDescSet = true;
-            for (const candidate of this.iceCandidateQueue) {
-                await this._sendIce({ candidate });
-            }
-            this.iceCandidateQueue = [];
         } catch (err) {
             console.error("[RTC] WebRTC connect failed:", err);
             this.close();
