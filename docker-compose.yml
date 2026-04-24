@@ -3,6 +3,8 @@ services:
     build: ./Backend
     container_name: ai-backend
     restart: always
+    environment:
+      - AIORTC_ICE_SERVERS=turn:openrelay.metered.ca:80?transport=udp&username=openrelayproject&credential=openrelayproject
 
   frontend-builder:
     build: ./Frontend

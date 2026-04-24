@@ -3,7 +3,6 @@ import os
 
 from aiortc.sdp import candidate_from_sdp
 from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
-from fastapi import WebSocket
 
 from Server.SessionHandler import SessionHandler
 from Server.Enums.RunningMode import RunningMode
@@ -11,6 +10,9 @@ from Server.HandDetection import HandDetection
 from Server.domen.WebRTC.IceRequest import IceRequest
 from Server.domen.WebRTC.AnswerResponse import AnswerResponse
 from Server.domen.WebRTC.OfferRequest import OfferRequest
+import os
+
+os.environ["AIOICE_LOG"] = "DEBUG"
 
 
 class WebRTCHandler:
@@ -47,6 +49,14 @@ class WebRTCHandler:
             print(f"[{session_id}] Connection: {pc.connectionState}")
             if pc.connectionState in ("failed", "closed", "disconnected"):
                 await self._cleanup(session_id)
+
+        @pc.on("icegatheringstatechange")
+        def on_gathering():
+            print(f"[{session_id}] ICE gathering: {pc.iceGatheringState}")
+
+        @pc.on("iceconnectionstatechange")  
+        def on_ice():
+            print(f"[{session_id}] ICE connection: {pc.iceConnectionState}")
 
         return pc
 
