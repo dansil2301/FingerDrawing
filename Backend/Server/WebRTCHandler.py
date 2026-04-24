@@ -34,7 +34,8 @@ class WebRTCHandler:
                     username="openrelayproject",
                     credential="openrelayproject"
                 ),
-            ]
+            ],
+            iceTransportPolicy="relay"
         ))
 
         @pc.on("track")
@@ -74,6 +75,7 @@ class WebRTCHandler:
                 break
 
     async def get_description(self, offer: OfferRequest) -> AnswerResponse:
+        print(f"Offer SDP for session {OfferRequest.session_id}: {offer.sdp}")
         session = self.session_handler.create(offer.session_id)
         pc = self._make_pc(offer.session_id)
         session.web_rtc = pc
@@ -88,6 +90,7 @@ class WebRTCHandler:
         )
 
     async def get_ice(self, ice: IceRequest) -> None:
+        print(f"Ice candidates for session {ice.session_id}: {ice.candidate}")
         session = self.session_handler.get(ice.session_id)
         pc = session.web_rtc
         if pc is None:

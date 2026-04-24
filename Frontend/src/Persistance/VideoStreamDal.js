@@ -15,7 +15,6 @@ class VideoStreamDal {
 
         this.rtc = new RTCPeerConnection({
             iceServers: [
-                { urls: "stun:stun.l.google.com:19302" },
                 {
                     urls: [
                         "turn:openrelay.metered.ca:80",
@@ -25,7 +24,8 @@ class VideoStreamDal {
                     username: "openrelayproject",
                     credential: "openrelayproject"
                 }
-            ]
+            ],
+            iceTransportPolicy: "relay"
         });
 
         this.rtc.onconnectionstatechange = () => {
