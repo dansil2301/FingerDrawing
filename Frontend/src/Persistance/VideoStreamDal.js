@@ -13,8 +13,11 @@ class VideoStreamDal {
         this.iceCandidateQueue = [];
         this.remoteDescSet = false;
 
-        this.rtc = new RTCPeerConnection({
-            iceServers: [
+        const isDev = process.env.REACT_APP_ENV === "d";
+
+        const iceServers = isDev
+            ? [{ urls: "stun:stun.l.google.com:19302" }]
+            : [
                 {
                     urls: [
                         "turn:openrelay.metered.ca:80",
@@ -24,8 +27,11 @@ class VideoStreamDal {
                     username: "openrelayproject",
                     credential: "openrelayproject"
                 }
-            ],
-            iceTransportPolicy: "relay"
+            ];
+
+        this.rtc = new RTCPeerConnection({
+            iceServers,
+            ...(isDev ? {} : { iceTransportPolicy: "relay" })
         });
 
         this.rtc.onconnectionstatechange = () => {
