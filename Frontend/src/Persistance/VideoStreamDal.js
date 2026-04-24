@@ -18,16 +18,27 @@ class VideoStreamDal {
         const iceServers = isDev
             ? [{ urls: "stun:stun.l.google.com:19302" }]
             : [
-                { urls: "stun:stun.l.google.com:19302" },
+                { urls: "stun:stun.relay.metered.ca:80" },
                 {
-                    urls: [
-                        "turn:openrelay.metered.ca:80",
-                        "turn:openrelay.metered.ca:443",
-                        "turn:openrelay.metered.ca:443?transport=tcp"
-                    ],
-                    username: "openrelayproject",
-                    credential: "openrelayproject"
-                }
+                    urls: "turn:global.relay.metered.ca:80",
+                    username: process.env.REACT_APP_TURN_USERNAME,
+                    credential: process.env.REACT_APP_TURN_CREDENTIAL,
+                },
+                {
+                    urls: "turn:global.relay.metered.ca:80?transport=tcp",
+                    username: process.env.REACT_APP_TURN_USERNAME,
+                    credential: process.env.REACT_APP_TURN_CREDENTIAL,
+                },
+                {
+                    urls: "turn:global.relay.metered.ca:443",
+                    username: process.env.REACT_APP_TURN_USERNAME,
+                    credential: process.env.REACT_APP_TURN_CREDENTIAL,
+                },
+                {
+                    urls: "turns:global.relay.metered.ca:443?transport=tcp",
+                    username: process.env.REACT_APP_TURN_USERNAME,
+                    credential: process.env.REACT_APP_TURN_CREDENTIAL,
+                },
             ];
 
         this.rtc = new RTCPeerConnection({ iceServers });

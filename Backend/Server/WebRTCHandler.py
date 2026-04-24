@@ -3,6 +3,7 @@ import os
 
 from aiortc.sdp import candidate_from_sdp
 from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
+from dotenv import load_dotenv
 
 from Server.SessionHandler import SessionHandler
 from Server.Enums.RunningMode import RunningMode
@@ -10,13 +11,11 @@ from Server.HandDetection import HandDetection
 from Server.domen.WebRTC.IceRequest import IceRequest
 from Server.domen.WebRTC.AnswerResponse import AnswerResponse
 from Server.domen.WebRTC.OfferRequest import OfferRequest
-import os
-
-os.environ["AIOICE_LOG"] = "DEBUG"
 
 
 class WebRTCHandler:
     def __init__(self):
+        load_dotenv()
         BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         MODEL_PATH = os.path.join(BASE_DIR, "hand_landmarker.task")
         self.hand_detector = HandDetection(MODEL_PATH, RunningMode.VIDEO)
@@ -26,15 +25,16 @@ class WebRTCHandler:
     def _make_pc(self, session_id: str) -> RTCPeerConnection:
         pc = RTCPeerConnection(RTCConfiguration(
             iceServers=[
-                RTCIceServer(urls="stun:stun.l.google.com:19302"),
+                RTCIceServer(urls="stun:stun.relay.metered.ca:80"),
                 RTCIceServer(
                     urls=[
-                        "turn:openrelay.metered.ca:80",
-                        "turn:openrelay.metered.ca:443",
-                        "turn:openrelay.metered.ca:443?transport=tcp",
+                        "turn:global.relay.metered.ca:80",
+                        "turn:global.relay.metered.ca:80?transport=tcp",
+                        "turn:global.relay.metered.ca:443",
+                        "turns:global.relay.metered.ca:443?transport=tcp",
                     ],
-                    username="openrelayproject",
-                    credential="openrelayproject"
+                    username=os.getenv('TURN_USERNAME'),
+                    credential=os.getenv('TURN_CREDENTIAL')
                 ),
             ]
         ))
