@@ -32,19 +32,19 @@ export function useCanvasDrawing() {
   }, []);
 
   const _preprocessing = (point) => {
-      const cut = 0.07;
+      const cutX = 0.01;
+      const cutYTop = 0.01;
+      const cutYBottom = 0.20;
 
-      // ignore edge points
-      if (point.x <= cut || point.x >= 1 - cut ||
-          point.y <= cut || point.y >= 1 - cut) {
+      if (point.x <= cutX || point.x >= 1 - cutX ||
+          point.y <= cutYTop || point.y >= 1 - cutYBottom) {
           return null;
       }
 
-      // remap [cut, 1-cut] to [0, 1]
-      point.x = (point.x - cut) / (1 - 2 * cut);
-      point.y = (point.y - cut) / (1 - 2 * cut);
-
-      return point;
+      return {
+          x: (point.x - cutX) / (1 - 2 * cutX),
+          y: (point.y - cutYTop) / (1 - cutYTop - cutYBottom),
+      };
   }
 
   const drawFingerTips = (tips) => {

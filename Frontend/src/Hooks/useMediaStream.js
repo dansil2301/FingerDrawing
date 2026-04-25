@@ -2,7 +2,7 @@ import { useRef, useEffect } from "react";
 import ConnectionManager from "../Logic/ConnectionManager";
 
 const CONSTRAINTS = {
-    video: { width: { ideal: 160 }, height: { ideal: 100 }, frameRate: { ideal: 20 } },
+    video: { width: { ideal: 160 }, height: { ideal: 100 }, frameRate: { ideal: 15 } },
     audio: false,
 };
 
