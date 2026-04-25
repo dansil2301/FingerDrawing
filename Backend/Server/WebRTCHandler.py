@@ -91,6 +91,11 @@ class WebRTCHandler:
         await pc.setRemoteDescription(RTCSessionDescription(sdp=offer.sdp, type=offer.type))
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
+
+        print(f"[{offer.session_id}] Local SDP candidates:")
+        for line in pc.localDescription.sdp.split('\n'):
+            if 'candidate' in line:
+                print(f"  {line.strip()}")
         
         return AnswerResponse(
             sdp=pc.localDescription.sdp,
