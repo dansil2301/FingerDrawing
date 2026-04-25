@@ -24,16 +24,16 @@ app.add_middleware(
 )
 
 
-@app.websocket("/coordinates/{session_id}")
+@app.websocket("/api/coordinates/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
     await web_socket_handler.connect(websocket, session_id)
 
 
-@app.post("/stream-offer")
+@app.post("/api/stream-offer")
 async def stream_offer(offer: OfferRequest) -> AnswerResponse:
     return await web_rtc_handler.get_description(offer)
 
 
-@app.post("/ice-candidate")
+@app.post("/api/ice-candidate")
 async def ice_candidate(ice: IceRequest) -> None:
     await web_rtc_handler.get_ice(ice)

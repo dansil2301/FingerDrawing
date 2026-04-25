@@ -2,12 +2,7 @@ class SessionStore {
     static instance = null;
 
     constructor() {
-        const existing = localStorage.getItem("session_id");
-        this.sessionId = existing || crypto.randomUUID();
-
-        if (!existing) {
-            localStorage.setItem("session_id", this.sessionId);
-        }
+        this.sessionId = localStorage.getItem("session_id") || this._generate();
     }
 
     static getInstance() {
@@ -22,8 +17,13 @@ class SessionStore {
     }
 
     clear() {
-        this.sessionId = null;
-        localStorage.removeItem("session_id");
+        this.sessionId = this._generate();
+    }
+
+    _generate() {
+        const id = crypto.randomUUID();
+        localStorage.setItem("session_id", id);
+        return id;
     }
 }
 
