@@ -61,10 +61,16 @@ class WebRTCHandler:
         return pc
 
     async def _process_video(self, session_id: str, track):
+        frame_count = 0
         while True:
             try:
                 frame = await track.recv()
+                frame_count += 1
+
                 img = frame.to_ndarray(format="bgr24")
+
+                if frame_count % 3 != 0:  # process every 3rd frame
+                    continue
             
                 loop = asyncio.get_event_loop()
                 result = await loop.run_in_executor(
@@ -91,11 +97,6 @@ class WebRTCHandler:
         await pc.setRemoteDescription(RTCSessionDescription(sdp=offer.sdp, type=offer.type))
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
-
-        print(f"[{offer.session_id}] Local SDP candidates:")
-        for line in pc.localDescription.sdp.split('\n'):
-            if 'candidate' in line:
-                print(f"  {line.strip()}")
         
         return AnswerResponse(
             sdp=pc.localDescription.sdp,
