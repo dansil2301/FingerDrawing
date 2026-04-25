@@ -1,3 +1,5 @@
+import math
+
 from Server.Enums.HandPosition import HandPosition
 
 
@@ -21,28 +23,26 @@ class GesturesPos:
             return HandPosition.DOWN
         else:
             return HandPosition.NULL
-        
+
     def _finger_open(self, tip, dip, pip, wrist, mid_mcp) -> bool:
         position = self._hand_position(wrist, mid_mcp)
 
-        # rar = rearanged
-        if position == HandPosition.UP:
-            rar_tip, rar_dip, rar_pip = -tip.y, -dip.y, -pip.y
-
-        elif position == HandPosition.RIGHT:
-
-            rar_tip, rar_dip, rar_pip = tip.x, dip.x, pip.x
-
-        elif position == HandPosition.LEFT:
-            rar_tip, rar_dip, rar_pip = -tip.x, -dip.x, -pip.x
-
-        elif position == HandPosition.DOWN:
-            rar_tip, rar_dip, rar_pip = tip.y, dip.y, pip.y
-            
-        else:
+        if position == HandPosition.NULL:
             return False
 
-        return rar_tip > rar_dip > rar_pip
+        # 3D distance from wrist — works for all directions including toward camera
+        tip_dist = self._landmark_distance_3d(tip, wrist)
+        dip_dist = self._landmark_distance_3d(dip, wrist)
+        pip_dist = self._landmark_distance_3d(pip, wrist)
+
+        return tip_dist > dip_dist > pip_dist
+
+    def _landmark_distance_3d(self, a, b) -> float:
+        return math.sqrt(
+            (a.x - b.x) ** 2 + 
+            (a.y - b.y) ** 2 + 
+            (a.z - b.z) ** 2
+        )
         
     def _thumb_open(self, hand: list) -> bool:
         thumb_tip = hand[4]

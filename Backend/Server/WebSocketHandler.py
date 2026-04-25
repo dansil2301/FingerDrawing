@@ -24,6 +24,5 @@ class WebSocketHandler:
         except Exception as e:
             print("WS send failed:", e)
         finally:
-            print("here")
             self.session_handler.remove(session_id)
     

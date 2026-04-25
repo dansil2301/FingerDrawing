@@ -1,20 +1,27 @@
+import math
 from typing import List
 
 from Server.SessionHandler import SessionHandler
 
 
 class CoordsSmoothing:
-    def __init__(self, alpha: float = 0.2, jump_percent: float = 0.005):
+    def __init__(self, alpha: float = 0.5, jump_percent: float = 0.03):
         self.alpha = alpha
         self.jump_percent = jump_percent
 
         self.session_handler = SessionHandler()
 
-    def _ema(self, prev_point: float, curr_point: float) -> float:
-        return self.alpha * curr_point + (1 - self.alpha) * prev_point
+    def _ema(self, prev: float, curr: float, alpha: float) -> float:
+        return alpha * curr + (1 - alpha) * prev
     
-    def _is_big_jump(self, prev_point, curr_point) -> bool:
-        return (curr_point.x - prev_point.x) ** 2 + (curr_point.y - prev_point.y) ** 2 > self.jump_percent ** 2
+    def _distance(self, prev, curr) -> float:
+        return math.sqrt((curr.x - prev.x) ** 2 + (curr.y - prev.y) ** 2)
+
+    def _adaptive_alpha(self, distance: float) -> float:
+        if distance > self.jump_percent:
+            return 1.0
+        t = distance / self.jump_percent
+        return self.alpha + (1.0 - self.alpha) * t
 
     def smooth(self, session_id: str, hand_landmarks: list) -> List:
         session = self.session_handler.get(session_id)
@@ -27,14 +34,11 @@ class CoordsSmoothing:
 
         for i, curr in enumerate(hand_landmarks):
             prev = session.prev_coords[i]
+            dist = self._distance(prev, curr)
+            alpha = self._adaptive_alpha(dist)
 
-            if self._is_big_jump(prev, curr):
-                smoothed.append(curr)
-            else:
-                curr.x = self._ema(prev.x, curr.x)
-                curr.y = self._ema(prev.y, curr.y)
-                smoothed.append(curr)
-
-        session.prev_coords = [p for p in smoothed]
-
+            curr.x = self._ema(prev.x, curr.x, alpha)
+            curr.y = self._ema(prev.y, curr.y, alpha)
+            smoothed.append(curr)
+        session.prev_coords = smoothed.copy()
         return smoothed
