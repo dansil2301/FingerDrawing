@@ -3,7 +3,7 @@ import os
 import cv2
 
 from Server.Enums.RunningMode import RunningMode
-from Server.HandDetection import HandDetection
+from Server.Gestures.HandDetection import HandDetection
 
 
 # This is created to test hand detection without FE intervantion

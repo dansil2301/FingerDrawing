@@ -39,6 +39,7 @@ function makeStateHandler({ onReady, onError }) {
         else if (state === "fatal") onError({ type: "fatal", message });
         else if (state === "error") onError({ type: "error", message });
         else if (state === "reconnecting") onError({ type: "reconnecting", message });
+        else if (state === "session_expired") onError({ type: "session_expired", message: "Your session has ended. Please refresh to continue." });
     };
 }
 

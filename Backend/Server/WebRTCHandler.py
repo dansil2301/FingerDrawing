@@ -4,13 +4,15 @@ import os
 from aiortc.sdp import candidate_from_sdp
 from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
 from dotenv import load_dotenv
+from fastapi.websockets import WebSocketState
 
+from Server.Exceptions.SessionExpiredException import SessionExpiredException
 from Server.SessionHandler import SessionHandler
 from Server.Enums.RunningMode import RunningMode
-from Server.HandDetection import HandDetection
-from Server.domen.WebRTC.IceRequest import IceRequest
-from Server.domen.WebRTC.AnswerResponse import AnswerResponse
-from Server.domen.WebRTC.OfferRequest import OfferRequest
+from Server.Gestures.HandDetection import HandDetection
+from Server.Domen.WebRTC.IceRequest import IceRequest
+from Server.Domen.WebRTC.AnswerResponse import AnswerResponse
+from Server.Domen.WebRTC.OfferRequest import OfferRequest
 
 
 class WebRTCHandler:
@@ -66,21 +68,32 @@ class WebRTCHandler:
                 frame = await track.recv()
                 img = frame.to_ndarray(format="bgr24")
 
+                session = await self.session_handler.get(session_id)
+                if session is None:
+                    break
+
                 loop = asyncio.get_event_loop()
                 result = await loop.run_in_executor(
                     None,
                     self.hand_detector.find_hand_coords,
-                    session_id,
+                    session,
                     img
                 )
 
-                session = self.session_handler.get(session_id)
-                if session:
-                    try:
-                        await session.web_socket.send_json(result.model_dump())
-                    except Exception as e:
-                        print(f"Error sending data on websocket {session_id}: {e}")
-            except Exception:
+                ws = session.web_socket
+                if ws and ws.client_state == WebSocketState.CONNECTED:
+                    await ws.send_json(result.model_dump())
+
+            except ValueError as e:
+                if "monotonically" in str(e):
+                    print(f"Skipping frame: {e}")
+                    continue
+                raise
+            
+            except Exception as e:
+                print(f"Error type: {type(e).__name__}, message: {e}")
+                print(f"Error in video processing: {e}")
+                self.session_handler.remove(session_id)
                 break
 
     async def get_description(self, offer: OfferRequest) -> AnswerResponse:
@@ -98,26 +111,27 @@ class WebRTCHandler:
         )
 
     async def get_ice(self, ice: IceRequest) -> None:
-        print(f"Ice candidate for session {ice.session_id} - {ice.candidate}")
-        session = self.session_handler.get(ice.session_id)
-        pc = session.web_rtc
-        if pc is None:
+        try:
+            session = await self.session_handler.get(ice.session_id)
+        except SessionExpiredException:
+            raise ValueError(f"Session expired: {ice.session_id}")
+        
+        if session is None or session.web_rtc is None:
             raise ValueError(f"No session: {ice.session_id}")
 
         candidate = candidate_from_sdp(ice.candidate)
-
         candidate.sdpMid = ice.sdpMid
         candidate.sdpMLineIndex = ice.sdpMLineIndex
-
-        await pc.addIceCandidate(candidate)
+        await session.web_rtc.addIceCandidate(candidate)
 
     async def _cleanup(self, session_id: str):
-        session = self.session_handler.get(session_id)
+        try:
+            session = await self.session_handler.get(session_id)
+        except SessionExpiredException:
+            return
+
         if session is None:
             return
             
-        pc = session.web_rtc
-        if pc and pc.signalingState != "closed":
-            await pc.close()
         self.session_handler.remove(session_id)
         print(f"[{session_id}] cleaned up")

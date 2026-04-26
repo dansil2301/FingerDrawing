@@ -17,7 +17,6 @@ class ConnectionManager {
         this._onMessage = onMessage;
         this._onStateChange = onStateChange;
         this._onNeedsFreshStream = onNeedsFreshStream;
-        
         await this._start(stream);
     }
 
@@ -42,12 +41,31 @@ class ConnectionManager {
 
     _onRtcState(state) {
         if (state === "connected") {
-            this.coordsDal.connect(this._onMessage);
+            this.coordsDal.connect(
+                this._onMessage,
+                () => this._onSessionExpired(),
+                (state) => this._onWsState(state)
+            );
             this._attempts = 0;
             this._onStateChange("connected");
         } else if (state === "failed" || state === "disconnected") {
             this._retry();
         }
+    }
+
+    _onWsState(state) {
+        console.log("[CM] WS state:", state);
+        if (state === "disconnected") {
+            this._retry();
+        }
+    }
+
+    _onSessionExpired() {
+        console.log("[CM] Session expired")
+        this._stopped = true;
+        this.videoDal.close();
+        this.coordsDal.disconnect();
+        this._onStateChange("session_expired");
     }
 
     _retry(err) {

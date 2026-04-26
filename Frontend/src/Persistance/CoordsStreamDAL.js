@@ -10,46 +10,49 @@ class CoordsStreamDAL {
         this.socket = null;
     }
 
-    connect(onMessage) {
+    connect(onMessage, onSessionExpired, onStateChange) {
+        this._intentionalClose = false;
         const url = `${this.wsBaseUrl}/${SessionStore.get()}`;
         console.log("[WS] Connecting to:", url);
-
         this.socket = new WebSocket(url);
-        this.setupHandlers(onMessage);
+        this.setupHandlers(onMessage, onSessionExpired, onStateChange);
     }
 
-    setupHandlers(onMessage) {
-        this.socket.onopen = this.handleOpen.bind(this);
-        this.socket.onmessage = this.handleMessage.bind(this, onMessage);
-        this.socket.onclose = this.handleClose.bind(this);
-        this.socket.onerror = this.handleError.bind(this);
+    setupHandlers(onMessage, onSessionExpired, onStateChange) {
+        this.socket.onopen = () => {
+            console.log("[WS] Connected");
+            onStateChange?.("connected");
+        };
+        this.socket.onmessage = this.handleMessage.bind(this, onMessage, onSessionExpired);
+        this.socket.onclose = () => {
+            console.warn("[WS] Closed");
+            if (!this._intentionalClose) {
+                onStateChange?.("disconnected");
+            }
+        };
+        this.socket.onerror = (err) => {
+            console.error("[WS] Error:", err);
+        };
     }
 
-    handleOpen() {
-        console.log("[WS] Connected");
-    }
-
-    handleMessage(onMessage, event) {
+    handleMessage(onMessage, onSessionExpired, event) {
         try {
             const data = JSON.parse(event.data);
+            if (data.error === "session expired") {
+                console.warn("[WS] Session expired");
+                this._intentionalClose = true;
+                onSessionExpired?.();
+                return;
+            }
+
             onMessage?.(data);
         } catch (err) {
             console.error("[WS] Parse error:", err);
-            throw err;
         }
     }
 
-    handleClose() {
-        console.warn("[WS] Closed");
-    }
-
-    handleError(err) {
-        console.error("[WS] Error:", err);
-        this.socket.close();
-        throw err;
-    }
-
     disconnect() {
+        this._intentionalClose = true;
         this.socket?.close();
     }
 }

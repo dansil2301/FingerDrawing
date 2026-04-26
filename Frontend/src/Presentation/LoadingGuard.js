@@ -14,6 +14,18 @@ function LoadingGuard({ status, error }) {
         );
     }
 
+    if (error?.type === "session_expired") {
+        return (
+            <div className="overlay">
+                <h2 className="overlay-title">Session ended</h2>
+                <p className="overlay-hint">Your test session has ended. Refresh the page to continue.</p>
+                <button className="overlay-btn" onClick={() => window.location.reload()}>
+                    Reload
+                </button>
+            </div>
+        );
+    }
+
     const { title, hint } = ERROR_MESSAGES[error?.message] ?? ERROR_MESSAGES.default;
 
     return (
@@ -27,4 +39,4 @@ function LoadingGuard({ status, error }) {
     );
 }
 
-export default LoadingGuard
+export default LoadingGuard;

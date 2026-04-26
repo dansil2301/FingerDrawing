@@ -1,15 +1,13 @@
 import math
 from typing import List
 
-from Server.SessionHandler import SessionHandler
+from Server.DTO.SessionObject import SessionObject
 
 
 class CoordsSmoothing:
     def __init__(self, alpha: float = 0.5, jump_percent: float = 0.03):
         self.alpha = alpha
         self.jump_percent = jump_percent
-
-        self.session_handler = SessionHandler()
 
     def _ema(self, prev: float, curr: float, alpha: float) -> float:
         return alpha * curr + (1 - alpha) * prev
@@ -23,9 +21,7 @@ class CoordsSmoothing:
         t = distance / self.jump_percent
         return self.alpha + (1.0 - self.alpha) * t
 
-    def smooth(self, session_id: str, hand_landmarks: list) -> List:
-        session = self.session_handler.get(session_id)
-
+    def smooth(self, session: SessionObject, hand_landmarks: list) -> List:
         if session.prev_coords is None:
             session.prev_coords = hand_landmarks.copy()
             return hand_landmarks

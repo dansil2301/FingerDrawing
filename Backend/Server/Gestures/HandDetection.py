@@ -6,9 +6,10 @@ from mediapipe.tasks.python import vision
 import numpy as np
 import mediapipe as mp
 
+from Server.DTO.SessionObject import SessionObject
 from Server.Gestures.CoordsSmoothing import CoordsSmoothing
 from Server.Enums.Action import Action
-from Server.domen.CoordinatesResponse import CoordinatesResponse
+from Server.Domen.CoordinatesResponse import CoordinatesResponse
 from Server.Gestures.GesturesCoords import GesturesCoords
 from Server.Enums.RunningMode import RunningMode
 from Server.Gestures.GesturesPos import GesturesPos
@@ -53,6 +54,7 @@ class HandDetection:
         mp_image = self._frame_preprocessing(frame)
         
         timestamp_ms = int((time.time() - self.start_time) * 1000)
+        print(timestamp_ms)
 
         result = self.detector.detect_for_video(mp_image, timestamp_ms)
 
@@ -60,7 +62,7 @@ class HandDetection:
         
         return frame
     
-    def find_hand_coords(self, session_id: str, frame: np.ndarray) -> CoordinatesResponse:
+    def find_hand_coords(self, session: SessionObject, frame: np.ndarray) -> CoordinatesResponse:
         frame = cv2.flip(frame, 1)
         mp_image = self._frame_preprocessing(frame)
         
@@ -71,7 +73,7 @@ class HandDetection:
         coordinates = CoordinatesResponse()
 
         for hand_landmarks in result.hand_landmarks:
-            smoothed_landmarks = self.coords_smoothing.smooth(session_id, hand_landmarks)
+            smoothed_landmarks = self.coords_smoothing.smooth(session, hand_landmarks)
 
             # Always pass finger tips to FE
             coordinates.finger_tips = GesturesCoords.finger_tips(smoothed_landmarks)

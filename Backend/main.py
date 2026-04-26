@@ -4,10 +4,10 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 from Server.WebSocketHandler import WebSocketHandler
-from Server.domen.WebRTC.AnswerResponse import AnswerResponse
+from Server.Domen.WebRTC.AnswerResponse import AnswerResponse
 from Server.SessionHandler import SessionHandler
-from Server.domen.WebRTC.IceRequest import IceRequest
-from Server.domen.WebRTC.OfferRequest import OfferRequest
+from Server.Domen.WebRTC.IceRequest import IceRequest
+from Server.Domen.WebRTC.OfferRequest import OfferRequest
 from Server.WebRTCHandler import WebRTCHandler
 
 
