@@ -98,6 +98,7 @@ class WebRTCHandler:
 
     async def get_description(self, offer: OfferRequest) -> AnswerResponse:
         session = self.session_handler.create(offer.session_id)
+        session.detector = self.hand_detector.create_detector()
         pc = self._make_pc(offer.session_id)
         session.web_rtc = pc
 

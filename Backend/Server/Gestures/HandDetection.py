@@ -1,4 +1,5 @@
 import time
+from typing import Any
 
 import cv2
 from mediapipe.tasks import python
@@ -17,14 +18,8 @@ from Server.Gestures.GesturesPos import GesturesPos
 
 class HandDetection:
     def __init__(self, model_path: str, running_mode: RunningMode):
-        base_options = python.BaseOptions(model_asset_path=model_path)
-        options = vision.HandLandmarkerOptions(
-            base_options=base_options,
-            running_mode=running_mode.value,
-            num_hands=1
-        )
-
-        self.detector = vision.HandLandmarker.create_from_options(options)
+        self.model_path = model_path
+        self.running_mode = running_mode
 
         self.start_time = time.time()
 
@@ -43,32 +38,31 @@ class HandDetection:
             image_format=mp.ImageFormat.SRGB,
             data=rgb_frame
         )
+    
+    def create_detector(self) -> Any:
+        base_options = python.BaseOptions(model_asset_path=self.model_path)
+        options = vision.HandLandmarkerOptions(
+            base_options=base_options,
+            running_mode=self.running_mode.value,
+            num_hands=1
+        )
 
-
-    def find_hand(self, frame: np.ndarray) -> np.ndarray:
-        frame = cv2.flip(frame, 1)
-
-        if self.canvas is None:
-            self.canvas = np.zeros_like(frame)
-
-        mp_image = self._frame_preprocessing(frame)
-        
-        timestamp_ms = int((time.time() - self.start_time) * 1000)
-        print(timestamp_ms)
-
-        result = self.detector.detect_for_video(mp_image, timestamp_ms)
-
-        frame = self._unpack_result(frame, result)
-        
-        return frame
+        return vision.HandLandmarker.create_from_options(options)
+    
+    def _get_timestamp_ms(self, session: SessionObject):
+        ts = int((time.time() - session.created_at.timestamp()) * 1000)
+        if session.last_detected_timestamp and ts <= session.last_detected_timestamp:
+            ts = session.last_detected_timestamp + 1
+        session.last_detected_timestamp = ts
+        return ts
     
     def find_hand_coords(self, session: SessionObject, frame: np.ndarray) -> CoordinatesResponse:
         frame = cv2.flip(frame, 1)
         mp_image = self._frame_preprocessing(frame)
         
-        timestamp_ms = int((time.time() - self.start_time) * 1000)
+        timestamp_ms = self._get_timestamp_ms(session)
 
-        result = self.detector.detect_for_video(mp_image, timestamp_ms)
+        result = session.detector.detect_for_video(mp_image, timestamp_ms)
         
         coordinates = CoordinatesResponse()
 
@@ -88,7 +82,6 @@ class HandDetection:
 
         return coordinates
         
-
     def _unpack_result(self, frame: np.ndarray, result: object):
         for hand_landmarks in result.hand_landmarks:
             frame = self._draw_key_point(frame, hand_landmarks)
