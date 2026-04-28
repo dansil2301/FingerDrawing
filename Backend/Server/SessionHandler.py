@@ -21,6 +21,9 @@ class SessionHandler(metaclass=SingletonMeta):
     async def get(self, id: str) -> SessionObject:
         '''
         If session is over automatically delete object and send error to FE by websocket
+        Aguable to keep the single sending logic here, 
+        but it is more logical to keep it session handler, since this is where the session is managed
+        Create API for this in WebSocketHandler and call it here?
         '''
         session = self.sessions.get(id, None)
 
