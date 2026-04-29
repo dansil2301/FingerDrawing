@@ -4,6 +4,7 @@ import os
 from aiortc.sdp import candidate_from_sdp
 from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
 from dotenv import load_dotenv
+from fastapi import HTTPException
 from fastapi.websockets import WebSocketState
 
 from Server.Exceptions.SessionExpiredException import SessionExpiredException
@@ -46,6 +47,13 @@ class WebRTCHandler:
             if track.kind == "video":
                 await self._process_video(session_id, track)
 
+        @pc.on("datachannel")
+        def on_datachannel(channel):
+            print(f"[{session_id}] Data channel: {channel.label}")
+            session = self.session_handler.get(session_id)
+            if session:
+                session.data_channel = channel
+
         @pc.on("connectionstatechange")
         async def on_state():
             print(f"[{session_id}] Connection: {pc.connectionState}")
@@ -54,11 +62,11 @@ class WebRTCHandler:
 
         @pc.on("icegatheringstatechange")
         def on_gathering():
-            print(f"[{session_id}] ICE gathering: {pc.iceGatheringState}")
+            print(f"ICE gathering for session {session_id}: {pc.iceGatheringState}")
 
         @pc.on("iceconnectionstatechange")  
         def on_ice():
-            print(f"[{session_id}] ICE connection: {pc.iceConnectionState}")
+            print(f"ICE connection for session {session_id}: {pc.iceConnectionState}")
 
         return pc
 
@@ -80,9 +88,9 @@ class WebRTCHandler:
                     img
                 )
 
-                ws = session.web_socket
-                if ws and ws.client_state == WebSocketState.CONNECTED:
-                    await ws.send_json(result.model_dump())
+                dc = session.data_channel
+                if dc and dc.readyState == "open":
+                    dc.send(result.model_dump_json())
 
             except ValueError as e:
                 if "monotonically" in str(e):
@@ -97,7 +105,11 @@ class WebRTCHandler:
                 break
 
     async def get_description(self, offer: OfferRequest) -> AnswerResponse:
-        session = self.session_handler.create(offer.session_id)
+        try:
+            session = await self.session_handler.get(offer.session_id)
+        except SessionExpiredException:
+            raise HTTPException(status_code=410, detail="Session expired")
+
         session.detector = self.hand_detector.create_detector()
         pc = self._make_pc(offer.session_id)
         session.web_rtc = pc
@@ -115,10 +127,10 @@ class WebRTCHandler:
         try:
             session = await self.session_handler.get(ice.session_id)
         except SessionExpiredException:
-            raise ValueError(f"Session expired: {ice.session_id}")
+            raise HTTPException(status_code=410, detail="Session expired")
         
         if session is None or session.web_rtc is None:
-            raise ValueError(f"No session: {ice.session_id}")
+            raise HTTPException(status_code=404, detail=f"No session: {ice.session_id}")
 
         candidate = candidate_from_sdp(ice.candidate)
         candidate.sdpMid = ice.sdpMid

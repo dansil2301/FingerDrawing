@@ -1,6 +1,6 @@
 import datetime
 
-from Server.Domen.SessionExpired import SessionExpired
+from Server.WebSocketHandler import WebSocketHandler
 from Server.Exceptions.SessionExpiredException import SessionExpiredException
 from Server.DTO.SessionObject import SessionObject
 from Server.Utils.Singleton import SingletonMeta
@@ -8,12 +8,12 @@ from Server.Utils.Singleton import SingletonMeta
 
 class SessionHandler(metaclass=SingletonMeta):
     def __init__(self):
+        self.websocket_handler = WebSocketHandler()
         self.sessions: dict[str, SessionObject] = {}
     
     def create(self, id: str) -> SessionObject:
         session = SessionObject(
             session_id=id,
-            created_at=datetime.datetime.now()
         )
         self.sessions[id] = session
         return session
@@ -27,14 +27,10 @@ class SessionHandler(metaclass=SingletonMeta):
         '''
         session = self.sessions.get(id, None)
 
-        if session and session.created_at + datetime.timedelta(seconds=60) < datetime.datetime.now():
+        if session and session.started_at_timestamp + datetime.timedelta(seconds=60) < datetime.datetime.now():
             self.remove(id)
             if session.web_socket:
-                try:
-                    await session.web_socket.send_json(SessionExpired().model_dump())
-                    print("Successfully sent session expiry signle")
-                except Exception as e:
-                    print(f"Error: sending session expiry signle failed ({e})")
+                self.websocket_handler.send_session_expired_signal(session.web_socket)
             raise SessionExpiredException("Session expired")
 
         return session

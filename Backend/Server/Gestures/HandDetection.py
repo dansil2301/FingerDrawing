@@ -50,7 +50,7 @@ class HandDetection:
         return vision.HandLandmarker.create_from_options(options)
     
     def _get_timestamp_ms(self, session: SessionObject):
-        ts = int((time.time() - session.created_at.timestamp()) * 1000)
+        ts = int((time.time() - session.started_at_timestamp) * 1000)
         if session.last_detected_timestamp and ts <= session.last_detected_timestamp:
             ts = session.last_detected_timestamp + 1
         session.last_detected_timestamp = ts

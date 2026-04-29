@@ -24,7 +24,7 @@ app.add_middleware(
 )
 
 
-@app.websocket("/api/coordinates/{session_id}")
+@app.websocket("/api/orchestration/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
     await web_socket_handler.connect(websocket, session_id)
 
