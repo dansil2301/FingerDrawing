@@ -1,14 +1,12 @@
-import asyncio
-
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
-from Server.WebSocketHandler import WebSocketHandler
+from Server.Handlers.WebSocketHandler import WebSocketHandler
 from Server.Domen.WebRTC.AnswerResponse import AnswerResponse
-from Server.SessionHandler import SessionHandler
+from Server.Handlers.SessionHandler import SessionHandler
 from Server.Domen.WebRTC.IceRequest import IceRequest
 from Server.Domen.WebRTC.OfferRequest import OfferRequest
-from Server.WebRTCHandler import WebRTCHandler
+from Backend.Server.Handlers.WebRTCHandler import WebRTCHandler
 
 
 web_rtc_handler = WebRTCHandler()

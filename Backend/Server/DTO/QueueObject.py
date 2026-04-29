@@ -1,10 +1,12 @@
 from dataclasses import dataclass
 
+from fastapi import WebSocket
+
 
 @dataclass
 class QueueObject:
     session_id: str
-    position: int
-    active: bool = True
+    web_socket: WebSocket
     allowed: bool = False
     ttl_timestamp: int | None = None
+    tries: int = 0

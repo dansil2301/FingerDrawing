@@ -5,10 +5,10 @@ from aiortc.sdp import candidate_from_sdp
 from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
 from dotenv import load_dotenv
 from fastapi import HTTPException
-from fastapi.websockets import WebSocketState
 
+from Server.QueueOrchestration import QueueOrchestration
 from Server.Exceptions.SessionExpiredException import SessionExpiredException
-from Server.SessionHandler import SessionHandler
+from Server.Handlers.SessionHandler import SessionHandler
 from Server.Enums.RunningMode import RunningMode
 from Server.Gestures.HandDetection import HandDetection
 from Server.Domen.WebRTC.IceRequest import IceRequest
@@ -24,6 +24,7 @@ class WebRTCHandler:
         self.hand_detector = HandDetection(MODEL_PATH, RunningMode.VIDEO)
 
         self.session_handler = SessionHandler()
+        self.queue_orchestration = QueueOrchestration()
 
     def _make_pc(self, session_id: str) -> RTCPeerConnection:
         pc = RTCPeerConnection(RTCConfiguration(
