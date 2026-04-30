@@ -10,7 +10,7 @@ import mediapipe as mp
 from Server.DTO.SessionObject import SessionObject
 from Server.Gestures.CoordsSmoothing import CoordsSmoothing
 from Server.Enums.Action import Action
-from Backend.Server.Domen.WebRTC.CoordinatesResponse import CoordinatesResponse
+from Server.Domen.WebRTC.CoordinatesResponse import CoordinatesResponse
 from Server.Gestures.GesturesCoords import GesturesCoords
 from Server.Enums.RunningMode import RunningMode
 from Server.Gestures.GesturesPos import GesturesPos

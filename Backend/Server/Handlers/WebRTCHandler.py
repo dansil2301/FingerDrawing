@@ -14,13 +14,14 @@ from Server.Gestures.HandDetection import HandDetection
 from Server.Domen.WebRTC.IceRequest import IceRequest
 from Server.Domen.WebRTC.AnswerResponse import AnswerResponse
 from Server.Domen.WebRTC.OfferRequest import OfferRequest
+from Server.Utils.logging_config import logger
 
 
 class WebRTCHandler:
     def __init__(self):
         load_dotenv()
         BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        MODEL_PATH = os.path.join(BASE_DIR, "hand_landmarker.task")
+        MODEL_PATH = os.path.join(BASE_DIR, "Gestures", "hand_landmarker.task")
         self.hand_detector = HandDetection(MODEL_PATH, RunningMode.VIDEO)
 
         self.session_handler = SessionHandler()
@@ -50,24 +51,24 @@ class WebRTCHandler:
 
         @pc.on("datachannel")
         def on_datachannel(channel):
-            print(f"[{session_id}] Data channel: {channel.label}")
+            logger.info(f"[{session_id}] Data channel: {channel.label}")
             session = self.session_handler.get(session_id)
             if session:
                 session.data_channel = channel
 
         @pc.on("connectionstatechange")
         async def on_state():
-            print(f"[{session_id}] Connection: {pc.connectionState}")
+            logger.info(f"[{session_id}] Connection: {pc.connectionState}")
             if pc.connectionState in ("failed", "closed", "disconnected"):
                 await self._cleanup(session_id)
 
-        @pc.on("icegatheringstatechange")
-        def on_gathering():
-            print(f"ICE gathering for session {session_id}: {pc.iceGatheringState}")
+        # @pc.on("icegatheringstatechange")
+        # def on_gathering():
+        #     logger.info(f"ICE gathering for session {session_id}: {pc.iceGatheringState}")
 
-        @pc.on("iceconnectionstatechange")  
-        def on_ice():
-            print(f"ICE connection for session {session_id}: {pc.iceConnectionState}")
+        # @pc.on("iceconnectionstatechange")  
+        # def on_ice():
+        #     logger.info(f"ICE connection for session {session_id}: {pc.iceConnectionState}")
 
         return pc
 
@@ -93,23 +94,25 @@ class WebRTCHandler:
                 if dc and dc.readyState == "open":
                     dc.send(result.model_dump_json())
 
+            except SessionExpiredException as e:
+                logger.warning(f"Session for {session_id} expired")
+                await self.queue_orchestration.next(session_id)
+                break
             except ValueError as e:
                 if "monotonically" in str(e):
-                    print(f"Skipping frame: {e}")
+                    logger.error(f"Skipping frame: {e}")
                     continue
                 raise
-            
             except Exception as e:
-                print(f"Error type: {type(e).__name__}, message: {e}")
-                print(f"Error in video processing: {e}")
+                logger.error(f"Error in video processing: {e}")
                 self.session_handler.remove(session_id)
                 break
 
     async def get_description(self, offer: OfferRequest) -> AnswerResponse:
-        try:
-            session = await self.session_handler.get(offer.session_id)
-        except SessionExpiredException:
-            raise HTTPException(status_code=410, detail="Session expired")
+        if not self.queue_orchestration.accept_connection(offer.session_id):
+            raise HTTPException(status_code=404, detail="Session not found in allowed connection list")
+
+        session = self.session_handler.create(offer.session_id)
 
         session.detector = self.hand_detector.create_detector()
         pc = self._make_pc(offer.session_id)
@@ -128,6 +131,7 @@ class WebRTCHandler:
         try:
             session = await self.session_handler.get(ice.session_id)
         except SessionExpiredException:
+            self.queue_orchestration.next(ice.session_id)
             raise HTTPException(status_code=410, detail="Session expired")
         
         if session is None or session.web_rtc is None:
@@ -142,10 +146,11 @@ class WebRTCHandler:
         try:
             session = await self.session_handler.get(session_id)
         except SessionExpiredException:
+            self.queue_orchestration.next(session_id)
             return
 
         if session is None:
             return
             
         self.session_handler.remove(session_id)
-        print(f"[{session_id}] cleaned up")
+        logger.info(f"[{session_id}] cleaned up")
