@@ -1,6 +1,3 @@
-import asyncio
-from typing import Awaitable, Callable
-
 from fastapi import WebSocket, WebSocketDisconnect
 
 from Server.Domen.QueueResponse import QueueResponse
@@ -34,11 +31,11 @@ class WebSocketHandler:
             await websocket.send_json(SessionExpired().model_dump())
             logger.info("Successfully sent session expiry signal")
         except Exception as e:
-            logger.error(f"sending session expiry signal failed ({e})")
+            logger.error(f"Sending session expiry signal failed ({e})")
 
     async def send(self, websocket: WebSocket, response: QueueResponse):
         try:
             await websocket.send_json(response.model_dump())
             logger.info("Successfully sent retry signal")
         except Exception as e:
-            logger.info(f"Error: sending retry signal failed ({e})")
+            logger.info(f"Sending retry signal failed ({e})")

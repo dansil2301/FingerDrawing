@@ -5,12 +5,20 @@ from fastapi import WebSocket
 from Server.Constants import ALLOWED_ACTIVE_USERS
 from Server.DTO.QueueObject import QueueObject
 from Server.Utils.Singleton import SingletonMeta
+from Server.Utils.logging_config import logger
+
 
 class QueueHandler(metaclass=SingletonMeta):
     def __init__(self):
         self.queue: deque[QueueObject] = deque()
     
     def create(self, id: str, websocket: WebSocket) -> QueueObject:
+        existing = next((item for item in self.queue if item.session_id == id), None)
+        if existing:
+            existing.web_socket = websocket
+            logger.info(f"Session {id} reconnected to existing queue position")
+            return existing
+
         queue_item = QueueObject(
             session_id=id,
             web_socket=websocket

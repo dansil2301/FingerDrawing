@@ -3,8 +3,9 @@ import time
 
 from fastapi import WebSocket
 
+from Server.DTO.QueueObject import QueueObject
 from Server.Domen.QueueResponse import QueueResponse
-from Server.Constants import ALLOWED_ACTIVE_USERS, MAX_TTL_TRIES
+from Server.Constants import ALLOWED_ACTIVE_USERS, MAX_TTL_TRIES, TLL_WAIT_TIME_SECONDS
 from Server.Handlers.QueueHandler import QueueHandler
 from Server.Handlers.WebSocketHandler import WebSocketHandler
 from Server.Utils.logging_config import logger
@@ -24,7 +25,7 @@ class QueueOrchestration:
             changed = False
 
             for queue_item in waiting_for_approval:
-                if now - queue_item.ttl_timestamp > 10:
+                if now - queue_item.ttl_timestamp > TLL_WAIT_TIME_SECONDS:
                     
                     if queue_item.tries < MAX_TTL_TRIES:
                         queue_item.tries += 1
@@ -56,13 +57,17 @@ class QueueOrchestration:
         self.queue_handler.remove(gone_session_id)
         await self._rebalance_broadcast_positions()
 
-    def accept_connection(self, session_id) -> bool:
+    def get_accept_connection(self, session_id) -> QueueObject | None:
+        '''
+        if accepted then QueueObject will be returned
+        else None
+        '''
         waiting_for_approval = self.queue_handler.get_allowed_and_not_active()
         for queue_item in waiting_for_approval:
             if queue_item.session_id == session_id:
                 queue_item.active = True
-                return True
-        return False
+                return queue_item
+        return None
 
     async def _rebalance_broadcast_positions(self):
         logger.info(f"Rebalancing was triggered")

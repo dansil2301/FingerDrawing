@@ -62,13 +62,13 @@ class WebRTCHandler:
             if pc.connectionState in ("failed", "closed", "disconnected"):
                 await self._cleanup(session_id)
 
-        # @pc.on("icegatheringstatechange")
-        # def on_gathering():
-        #     logger.info(f"ICE gathering for session {session_id}: {pc.iceGatheringState}")
+        @pc.on("icegatheringstatechange")
+        def on_gathering():
+            logger.info(f"ICE gathering for session {session_id}: {pc.iceGatheringState}")
 
-        # @pc.on("iceconnectionstatechange")  
-        # def on_ice():
-        #     logger.info(f"ICE connection for session {session_id}: {pc.iceConnectionState}")
+        @pc.on("iceconnectionstatechange")  
+        def on_ice():
+            logger.info(f"ICE connection for session {session_id}: {pc.iceConnectionState}")
 
         return pc
 
@@ -109,10 +109,11 @@ class WebRTCHandler:
                 break
 
     async def get_description(self, offer: OfferRequest) -> AnswerResponse:
-        if not self.queue_orchestration.accept_connection(offer.session_id):
+        queue_item = self.queue_orchestration.get_accept_connection(offer.session_id)
+        if queue_item is None:
             raise HTTPException(status_code=404, detail="Session not found in allowed connection list")
 
-        session = self.session_handler.create(offer.session_id)
+        session = self.session_handler.create(offer.session_id, queue_item.web_socket)
 
         session.detector = self.hand_detector.create_detector()
         pc = self._make_pc(offer.session_id)

@@ -1,5 +1,7 @@
 import time
 
+from fastapi import WebSocket
+
 from Server.Handlers.WebSocketHandler import WebSocketHandler
 from Server.Exceptions.SessionExpiredException import SessionExpiredException
 from Server.DTO.SessionObject import SessionObject
@@ -11,10 +13,11 @@ class SessionHandler(metaclass=SingletonMeta):
         self.websocket_handler = WebSocketHandler()
         self.sessions: dict[str, SessionObject] = {}
     
-    def create(self, id: str) -> SessionObject:
+    def create(self, id: str, websocket: WebSocket) -> SessionObject:
         session = SessionObject(
             session_id=id,
-            started_at_timestamp=time.time() * 1000
+            started_at_timestamp=time.time() * 1000,
+            web_socket=websocket
         )
         self.sessions[id] = session
         return session
@@ -25,7 +28,7 @@ class SessionHandler(metaclass=SingletonMeta):
         if session and session.started_at_timestamp + 60 * 1000 < time.time() * 1000:
             self.remove(id)
             if session.web_socket:
-                self.websocket_handler.send_session_expired_signal(session.web_socket)
+                await self.websocket_handler.send_session_expired_signal(session.web_socket)
             raise SessionExpiredException("Session expired")
 
         return session

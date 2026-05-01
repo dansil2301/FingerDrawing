@@ -57,19 +57,19 @@ class RtcClient {
         this.pc.onicecandidate = (event) => this._handleIce(event);
 
         this.pc.ondatachannel = (event) => {
-        console.log("[RTC] data channel received");
+            console.log("[RTC] data channel received");
 
-        const channel = event.channel;
+            const channel = event.channel;
 
-        channel.onmessage = (e) => {
-            try {
-                const data = JSON.parse(e.data);
-                onData?.(data);
-            } catch (err) {
-                console.error("[RTC] invalid data", e.data);
-            }
+            channel.onmessage = (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    onData?.(data);
+                } catch (err) {
+                    console.error("[RTC] invalid data", e.data);
+                }
+            };
         };
-    };
     }
 
     _handleIce(event) {
