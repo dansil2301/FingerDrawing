@@ -68,7 +68,7 @@ class QueueOrchestration:
     async def _rebalance_broadcast_positions(self):
         logger.info(f"Rebalancing was triggered")
         for idx, queue_object in enumerate(self.queue_handler.queue):
-            if queue_object.web_socket is None:
+            if queue_object.web_socket is None or queue_object.active:
                 continue
 
             if idx in range(ALLOWED_ACTIVE_USERS) and not queue_object.allowed:
