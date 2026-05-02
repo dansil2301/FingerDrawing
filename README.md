@@ -8,3 +8,5 @@
 
 Not ready to lose commit streak, so in another branch started adding queue and in general restructuring everything
 Commit streak 2 more modifications are needed for merge
+Fix bugs and structure in queue + FE
+Polish BE and FE before merge
