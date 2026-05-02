@@ -93,7 +93,7 @@ class WebRTCHandler:
                     img
                 )
 
-                self._send_data(session_id, result.model_dump_json(), result)
+                self._send_data(session_id, session.data_channel, result)
 
             except SessionExpiredException as e:
                 logger.warning(f"Session {session_id} expired")
@@ -137,7 +137,7 @@ class WebRTCHandler:
         await session.web_rtc.addIceCandidate(candidate)
 
     def _send_data(self, session_id: str, data_channel: Any, data: BaseModel):
-        if data_channel and data_channel == "open":
+        if data_channel and data_channel.readyState == "open":
             try:
                 data_channel.send(data.model_dump_json())
             except Exception as e:

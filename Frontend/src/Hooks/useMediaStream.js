@@ -54,7 +54,6 @@ export function useMediaStream({
                     onQueueUpdate: (data) => {
                         onQueueUpdate?.(data);
 
-                        // UI state based on queue
                         if (data.allowed) {
                             setStatus("connecting_rtc");
                         } else {
