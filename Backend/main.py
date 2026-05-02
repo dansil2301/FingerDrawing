@@ -1,39 +1,17 @@
-import asyncio
+from fastapi import FastAPI
 
-from fastapi import FastAPI, WebSocket
-from fastapi.middleware.cors import CORSMiddleware
-
-from Server.WebSocketHandler import WebSocketHandler
-from Server.Domen.WebRTC.AnswerResponse import AnswerResponse
-from Server.SessionHandler import SessionHandler
-from Server.Domen.WebRTC.IceRequest import IceRequest
-from Server.Domen.WebRTC.OfferRequest import OfferRequest
-from Server.WebRTCHandler import WebRTCHandler
+from Config import setup_middleware
+from Lifespan import create_lifespan
+from Server.QueueOrchestration import QueueOrchestration
+from Server.Handlers.WebRTCHandler import WebRTCHandler
+from Server.Routes.Routes import get_router
 
 
+orchestrator = QueueOrchestration()
 web_rtc_handler = WebRTCHandler()
-web_socket_handler = WebSocketHandler()
 
-app = FastAPI()
+app = FastAPI(lifespan=create_lifespan(orchestrator))
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+setup_middleware(app)
 
-
-@app.websocket("/api/coordinates/{session_id}")
-async def websocket_endpoint(websocket: WebSocket, session_id: str):
-    await web_socket_handler.connect(websocket, session_id)
-
-
-@app.post("/api/stream-offer")
-async def stream_offer(offer: OfferRequest) -> AnswerResponse:
-    return await web_rtc_handler.get_description(offer)
-
-
-@app.post("/api/ice-candidate")
-async def ice_candidate(ice: IceRequest) -> None:
-    await web_rtc_handler.get_ice(ice)
+app.include_router(get_router(orchestrator, web_rtc_handler))

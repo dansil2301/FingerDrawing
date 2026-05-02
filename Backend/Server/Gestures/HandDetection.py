@@ -10,7 +10,7 @@ import mediapipe as mp
 from Server.DTO.SessionObject import SessionObject
 from Server.Gestures.CoordsSmoothing import CoordsSmoothing
 from Server.Enums.Action import Action
-from Server.Domen.CoordinatesResponse import CoordinatesResponse
+from Server.Domen.WebRTC.CoordinatesResponse import CoordinatesResponse
 from Server.Gestures.GesturesCoords import GesturesCoords
 from Server.Enums.RunningMode import RunningMode
 from Server.Gestures.GesturesPos import GesturesPos
@@ -50,7 +50,7 @@ class HandDetection:
         return vision.HandLandmarker.create_from_options(options)
     
     def _get_timestamp_ms(self, session: SessionObject):
-        ts = int((time.time() - session.created_at.timestamp()) * 1000)
+        ts = int(time.time() * 1000 - session.started_at_timestamp)
         if session.last_detected_timestamp and ts <= session.last_detected_timestamp:
             ts = session.last_detected_timestamp + 1
         session.last_detected_timestamp = ts

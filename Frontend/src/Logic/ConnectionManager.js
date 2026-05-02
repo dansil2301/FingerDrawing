@@ -1,92 +1,97 @@
-import CoordsStreamDAL from '../Persistance/CoordsStreamDAL';
-import VideoStreamDal from '../Persistance/VideoStreamDal';
+import QueueSocket from '../Persistance/QueueSocket';
+import RtcClient from '../Persistance/RtcClient';
+import SessionStore from '../Persistance/SessionStore'
 
-const MAX_ATTEMPTS = 5;
-const BASE_DELAY = 1000;
-const MAX_DELAY = 15000;
 
 class ConnectionManager {
     constructor() {
-        this.coordsDal = new CoordsStreamDAL();
-        this.videoDal = new VideoStreamDal();
-        this._attempts = 0;
+        this.queue = new QueueSocket();
+        this.rtc = new RtcClient();
+
+        this._rtcStarted = false;
+        this._allowed = false;
         this._stopped = false;
     }
 
-    async connect(stream, onMessage, onStateChange, onNeedsFreshStream) {
-        this._onMessage = onMessage;
+    async connect(stream, { onQueueUpdate, onStateChange, onSessionExpired, onData }) {
+        this._stream = stream;
+        this._onQueueUpdate = onQueueUpdate;
         this._onStateChange = onStateChange;
-        this._onNeedsFreshStream = onNeedsFreshStream;
-        await this._start(stream);
-    }
+        this._onSessionExpired = onSessionExpired;
+        this._handleRtcData = onData;
 
-    async reconnectWithStream(stream) {
-        await this._start(stream);
+        this._connectQueue();
     }
 
     disconnect() {
         this._stopped = true;
-        this.videoDal.close();
-        this.coordsDal.disconnect();
+        this.queue.disconnect();
+        this.rtc.close();
     }
 
-    async _start(stream) {
-        try {
-            this._onStateChange("connecting");
-            await this.videoDal.connect(stream, (state) => this._onRtcState(state));
-        } catch (err) {
-            this._retry(err);
-        }
+    _connectQueue() {
+        const sessionId = SessionStore.get();
+
+        this.queue.connect(sessionId, {
+            onUpdate: (data) => this._handleQueueUpdate(data),
+            onStateChange: (state) => {
+                if (state === "disconnected") {
+                    console.warn("[CM] WS disconnected → reload");
+                    this._onStateChange("fatal", "Connection lost. Please reload.");
+                }
+            }
+        });
     }
 
-    _onRtcState(state) {
-        if (state === "connected") {
-            this.coordsDal.connect(
-                this._onMessage,
-                () => this._onSessionExpired(),
-                (state) => this._onWsState(state)
-            );
-            this._attempts = 0;
-            this._onStateChange("connected");
-        } else if (state === "failed" || state === "disconnected") {
-            this._retry();
-        }
-    }
+    async _handleQueueUpdate(data) {
+        this._allowed = data.allowed;
 
-    _onWsState(state) {
-        console.log("[CM] WS state:", state);
-        if (state === "disconnected") {
-            this._retry();
-        }
-    }
+        this._onQueueUpdate?.(data);
 
-    _onSessionExpired() {
-        console.log("[CM] Session expired")
-        this._stopped = true;
-        this.videoDal.close();
-        this.coordsDal.disconnect();
-        this._onStateChange("session_expired");
-    }
-
-    _retry(err) {
-        if (this._stopped) return;
-
-        if (this._attempts >= MAX_ATTEMPTS) {
-            this._onStateChange("fatal", `Failed after ${MAX_ATTEMPTS} attempts. Please refresh.`);
+        if (!data.allowed) {
+            this._onStateChange("waiting");
             return;
         }
 
-        const delay = Math.min(BASE_DELAY * 2 ** this._attempts, MAX_DELAY);
-        this._attempts++;
+        if (data.allowed && !this._rtcStarted) {
+            this._rtcStarted = true;
+            await this._startRtc();
+        }
+    }
 
-        this._onStateChange("reconnecting", `Reconnecting... (${this._attempts}/${MAX_ATTEMPTS})`);
-        console.log(`[CM] Retry ${this._attempts}/${MAX_ATTEMPTS} in ${delay}ms`, err?.message ?? "");
+    async _startRtc() {
+        try {
+            await this.rtc.start(
+                this._stream,
+                SessionStore.get(),
+                (state) => this._handleRtcState(state),
+                (data) => this._handleRtcData(data),
+                () => this._handleSessionExpired()
+            );
+        } catch (err) {
+            console.error("[CM] RTC failed:", err);
+            this._onStateChange("fatal", "Failed to start stream. Reload required.");
+        }
+    }
 
-        setTimeout(() => {
-            this.videoDal.close();
-            this.coordsDal.disconnect();
-            this._onNeedsFreshStream();
-        }, delay);
+    _handleRtcState(state) {
+        if (state === "connected") {
+            this._onStateChange("connected");
+        }
+
+        if (state === "failed" || state === "disconnected") {
+            console.warn("[CM] RTC died → reload");
+            this._onStateChange("fatal", "Connection lost. Please reload.");
+        }
+    }
+
+    _handleSessionExpired() {
+        this._stopped = true;
+
+        this.queue.disconnect();
+        this.rtc.close();
+
+        this._onSessionExpired?.();
     }
 }
 

@@ -34,7 +34,7 @@ export function useCanvasDrawing() {
   const _preprocessing = (point) => {
       const cutX = 0.01;
       const cutYTop = 0.01;
-      const cutYBottom = 0.20;
+      const cutYBottom = 0.25;
 
       if (point.x <= cutX || point.x >= 1 - cutX ||
           point.y <= cutYTop || point.y >= 1 - cutYBottom) {
@@ -88,7 +88,7 @@ export function useCanvasDrawing() {
       ctx.stroke();
     }
 
-    missingFramesRef.current = null;
+    missingFramesRef.current = 0;
     prevPointRef.current = { x, y };
   };
 

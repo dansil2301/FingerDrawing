@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import ConnectionManager from "../Logic/ConnectionManager";
 
 const CONSTRAINTS = {
@@ -10,10 +10,13 @@ async function acquireStream(streamRef, videoRef) {
     if (streamRef.current) {
         streamRef.current.getTracks().forEach(t => t.stop());
     }
+
     streamRef.current = await navigator.mediaDevices.getUserMedia(CONSTRAINTS);
+
     if (videoRef.current) {
         videoRef.current.srcObject = streamRef.current;
     }
+
     return streamRef.current;
 }
 
@@ -24,61 +27,85 @@ function releaseStream(streamRef) {
     }
 }
 
-function makeMessageHandler({ onFingers, onDraw, onErase, onReset }) {
-    return (data) => {
-        onFingers(data.finger_tips);
-        if (data.action === "draw") onDraw(data.coordinates);
-        else if (data.action === "erase") onErase(data.coordinates);
-        else onReset();
-    };
-}
-
-function makeStateHandler({ onReady, onError }) {
-    return (state, message) => {
-        if (state === "connected") onReady();
-        else if (state === "fatal") onError({ type: "fatal", message });
-        else if (state === "error") onError({ type: "error", message });
-        else if (state === "reconnecting") onError({ type: "reconnecting", message });
-        else if (state === "session_expired") onError({ type: "session_expired", message: "Your session has ended. Please refresh to continue." });
-    };
-}
-
-function makeRestartHandler(manager, streamRef, videoRef, onError) {
-    return async () => {
-        try {
-            await acquireStream(streamRef, videoRef);
-            await manager.reconnectWithStream(streamRef.current);
-        } catch (err) {
-            onError({ type: "fatal", message: "Could not restart camera." });
-        }
-    };
-}
-
-export function useMediaStream({ onFingers, onDraw, onErase, onReset, onReady, onError }) {
+export function useMediaStream({
+    onFingers,
+    onDraw,
+    onErase,
+    onReset,
+    onReady,
+    onError,
+    onQueueUpdate
+}) {
     const videoRef = useRef(null);
     const streamRef = useRef(null);
+    const managerRef = useRef(null);
+
+    const [status, setStatus] = useState("loading");
 
     useEffect(() => {
         const manager = new ConnectionManager();
+        managerRef.current = manager;
 
         async function start() {
             try {
                 const stream = await acquireStream(streamRef, videoRef);
 
-                await manager.connect(
-                    stream,
-                    makeMessageHandler({ onFingers, onDraw, onErase, onReset }),
-                    makeStateHandler({ onReady, onError }),
-                    makeRestartHandler(manager, streamRef, videoRef, onError)
-                );
+                await manager.connect(stream, {
+                    onQueueUpdate: (data) => {
+                        onQueueUpdate?.(data);
+
+                        // UI state based on queue
+                        if (data.allowed) {
+                            setStatus("connecting_rtc");
+                        } else {
+                            setStatus("waiting");
+                        }
+                    },
+
+                    onStateChange: (state, message) => {
+                        if (state === "connected") {
+                            setStatus("ready");
+                            onReady?.();
+                        } else if (state === "rtc_failed") {
+                            setStatus("error");
+                            onError?.({ type: "error", message: "RTC failed" });
+                        } else if (state === "fatal") {
+                            setStatus("error");
+                            onError?.({ type: "fatal", message });
+                        }
+                    },
+
+                    onSessionExpired: () => {
+                        setStatus("session_expired");
+                        onError?.({
+                            type: "session_expired",
+                            message: "Session expired"
+                        });
+                    },
+
+                    onData: (data) => {
+                        onFingers?.(data.finger_tips);
+
+                        if (data.action === "draw") {
+                            onDraw?.(data.coordinates);
+                        } else if (data.action === "erase") {
+                            onErase?.(data.coordinates);
+                        } else {
+                            onReset?.();
+                        }
+                    }
+                });
+
             } catch (err) {
-                onError({
+                onError?.({
                     type: "fatal",
                     message:
                         err.name === "NotAllowedError" ? "Camera access was denied." :
                         err.name === "NotFoundError"   ? "No camera found on this device." :
                         "Could not access camera.",
                 });
+
+                setStatus("error");
             }
         }
 
@@ -90,5 +117,5 @@ export function useMediaStream({ onFingers, onDraw, onErase, onReset, onReady, o
         };
     }, []);
 
-    return { videoRef };
+    return { videoRef, status };
 }

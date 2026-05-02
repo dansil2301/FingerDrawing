@@ -1,0 +1,2 @@
+class WebSocketException(Exception):
+    pass
