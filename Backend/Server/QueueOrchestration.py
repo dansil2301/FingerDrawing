@@ -57,17 +57,13 @@ class QueueOrchestration:
         self.queue_handler.remove(gone_session_id)
         await self._rebalance_broadcast_positions()
 
-    def get_accept_connection(self, session_id) -> QueueObject | None:
-        '''
-        if accepted then QueueObject will be returned
-        else None
-        '''
+    def accept_connection(self, session_id) -> bool:
         waiting_for_approval = self.queue_handler.get_allowed_and_not_active()
         for queue_item in waiting_for_approval:
             if queue_item.session_id == session_id:
                 queue_item.active = True
-                return queue_item
-        return None
+                return True
+        return False
 
     async def _rebalance_broadcast_positions(self):
         logger.info(f"Rebalancing was triggered")
@@ -82,5 +78,5 @@ class QueueOrchestration:
                 queue_object.allowed = True
 
             await self.websocket_handler.send(queue_object.web_socket, 
-                                              QueueResponse(position=idx - ALLOWED_ACTIVE_USERS, 
+                                              QueueResponse(position=idx - ALLOWED_ACTIVE_USERS + 1, 
                                                             allowed=queue_object.allowed))

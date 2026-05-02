@@ -34,9 +34,6 @@ class ConnectionManager {
 
         this.queue.connect(sessionId, {
             onUpdate: (data) => this._handleQueueUpdate(data),
-
-            onSessionExpired: () => this._handleSessionExpired(),
-
             onStateChange: (state) => {
                 if (state === "disconnected") {
                     console.warn("[CM] WS disconnected → reload");
@@ -68,7 +65,8 @@ class ConnectionManager {
                 this._stream,
                 SessionStore.get(),
                 (state) => this._handleRtcState(state),
-                (data) => this._handleRtcData(data)
+                (data) => this._handleRtcData(data),
+                () => this._handleSessionExpired()
             );
         } catch (err) {
             console.error("[CM] RTC failed:", err);

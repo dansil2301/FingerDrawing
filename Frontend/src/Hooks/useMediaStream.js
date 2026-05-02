@@ -84,7 +84,6 @@ export function useMediaStream({
                     },
 
                     onData: (data) => {
-                        console.log(data);
                         onFingers?.(data.finger_tips);
 
                         if (data.action === "draw") {

@@ -1,11 +1,14 @@
 import asyncio
 import os
+from typing import Any
 
 from aiortc.sdp import candidate_from_sdp
 from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
 from dotenv import load_dotenv
 from fastapi import HTTPException
+from pydantic import BaseModel
 
+from Server.Domen.SessionExpired import SessionExpired
 from Server.QueueOrchestration import QueueOrchestration
 from Server.Exceptions.SessionExpiredException import SessionExpiredException
 from Server.Handlers.SessionHandler import SessionHandler
@@ -50,15 +53,15 @@ class WebRTCHandler:
                 await self._process_video(session_id, track)
 
         @pc.on("datachannel")
-        def on_datachannel(channel):
-            logger.info(f"[{session_id}] Data channel: {channel.label}")
+        async def on_datachannel(channel):
+            logger.info(f"Data channel for session {session_id}: {channel.label}")
             session = self.session_handler.get(session_id)
             if session:
                 session.data_channel = channel
 
         @pc.on("connectionstatechange")
         async def on_state():
-            logger.info(f"[{session_id}] Connection: {pc.connectionState}")
+            logger.info(f"Connection for session {session_id}: {pc.connectionState}")
             if pc.connectionState in ("failed", "closed", "disconnected"):
                 await self._cleanup(session_id)
 
@@ -78,7 +81,7 @@ class WebRTCHandler:
                 frame = await track.recv()
                 img = frame.to_ndarray(format="bgr24")
 
-                session = await self.session_handler.get(session_id)
+                session = self.session_handler.get_raise(session_id)
                 if session is None:
                     break
 
@@ -90,30 +93,24 @@ class WebRTCHandler:
                     img
                 )
 
-                dc = session.data_channel
-                if dc and dc.readyState == "open":
-                    dc.send(result.model_dump_json())
+                self._send_data(session_id, result.model_dump_json(), result)
 
             except SessionExpiredException as e:
-                logger.warning(f"Session for {session_id} expired")
+                logger.warning(f"Session {session_id} expired")
+                session = self.session_handler.get(session_id)
+                self._send_data(session_id, session.data_channel, SessionExpired())
                 await self.queue_orchestration.next(session_id)
                 break
-            except ValueError as e:
-                if "monotonically" in str(e):
-                    logger.error(f"Skipping frame: {e}")
-                    continue
-                raise
+
             except Exception as e:
                 logger.error(f"Error in video processing: {e}")
-                self.session_handler.remove(session_id)
                 break
 
     async def get_description(self, offer: OfferRequest) -> AnswerResponse:
-        queue_item = self.queue_orchestration.get_accept_connection(offer.session_id)
-        if queue_item is None:
+        if not self.queue_orchestration.accept_connection(offer.session_id):
             raise HTTPException(status_code=404, detail="Session not found in allowed connection list")
 
-        session = self.session_handler.create(offer.session_id, queue_item.web_socket)
+        session = self.session_handler.create(offer.session_id)
 
         session.detector = self.hand_detector.create_detector()
         pc = self._make_pc(offer.session_id)
@@ -129,11 +126,7 @@ class WebRTCHandler:
         )
 
     async def get_ice(self, ice: IceRequest) -> None:
-        try:
-            session = await self.session_handler.get(ice.session_id)
-        except SessionExpiredException:
-            self.queue_orchestration.next(ice.session_id)
-            raise HTTPException(status_code=410, detail="Session expired")
+        session = self.session_handler.get(ice.session_id)
         
         if session is None or session.web_rtc is None:
             raise HTTPException(status_code=404, detail=f"No session: {ice.session_id}")
@@ -143,12 +136,15 @@ class WebRTCHandler:
         candidate.sdpMLineIndex = ice.sdpMLineIndex
         await session.web_rtc.addIceCandidate(candidate)
 
+    def _send_data(self, session_id: str, data_channel: Any, data: BaseModel):
+        if data_channel and data_channel == "open":
+            try:
+                data_channel.send(data.model_dump_json())
+            except Exception as e:
+                logger.error(f"Session {session_id} message sent failed ({e})")
+
     async def _cleanup(self, session_id: str):
-        try:
-            session = await self.session_handler.get(session_id)
-        except SessionExpiredException:
-            self.queue_orchestration.next(session_id)
-            return
+        session = self.session_handler.get(session_id)
 
         if session is None:
             return

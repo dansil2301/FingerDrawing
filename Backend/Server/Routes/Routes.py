@@ -9,7 +9,7 @@ from Server.Domen.WebRTC.OfferRequest import OfferRequest
 router = APIRouter()
 
 def get_router(orchestrator: QueueOrchestration, web_rtc_handler: WebRTCHandler):
-    @router.websocket("/api/orchestration/{session_id}")
+    @router.websocket("/api/queue/{session_id}")
     async def websocket_endpoint(websocket: WebSocket, session_id: str):
         await orchestrator.conenct(websocket, session_id)
 

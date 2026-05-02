@@ -2,14 +2,14 @@ class QueueSocket {
     constructor() {
         const protocol = process.env.REACT_APP_ENV === "d" ? "ws" : "wss";
         const baseUrl = process.env.REACT_APP_BE_URL || "localhost:8000";
-        this.baseUrl = `${protocol}://${baseUrl}/api/orchestration`;
+        this.baseUrl = `${protocol}://${baseUrl}/api/queue`;
 
         this.socket = null;
         this._intentionalClose = false;
         this._heartbeat = null;
     }
 
-    connect(sessionId, { onUpdate, onSessionExpired, onStateChange }) {
+    connect(sessionId, { onUpdate, onStateChange }) {
         this._intentionalClose = false;
 
         const url = `${this.baseUrl}/${sessionId}`;
@@ -26,7 +26,7 @@ class QueueSocket {
 
         this.socket.onmessage = (event) => {
             if (event.data === "pong") return;
-            this._handleMessage(event, { onUpdate, onSessionExpired });
+            this._handleMessage(event, { onUpdate });
         };
 
         this.socket.onclose = () => {
@@ -65,34 +65,16 @@ class QueueSocket {
         }
     }
 
-    _handleMessage(event, { onUpdate, onSessionExpired }) {
+    _handleMessage(event, { onUpdate }) {
         let data;
-
         try {
             data = JSON.parse(event.data);
         } catch {
-            // ignore non-JSON (like pong if you add later)
             return;
         }
 
-        if (data?.error === "session expired") {
-            console.warn("[Queue] session expired");
-
-            this._intentionalClose = true;
-            this.socket?.close();
-
-            onSessionExpired?.();
-            return;
-        }
-
-        if (
-            typeof data.position === "number" &&
-            typeof data.allowed === "boolean"
-        ) {
-            onUpdate?.({
-                position: data.position,
-                allowed: data.allowed
-            });
+        if (typeof data.position === "number" && typeof data.allowed === "boolean") {
+            onUpdate?.({ position: data.position, allowed: data.allowed });
             return;
         }
 
@@ -102,7 +84,7 @@ class QueueSocket {
     disconnect() {
         this._intentionalClose = true;
 
-        this._stopHeartbeat(); // ✅ important
+        this._stopHeartbeat();
         this.socket?.close();
     }
 }

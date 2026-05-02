@@ -43,10 +43,28 @@ class RtcClient {
         ];
     }
 
-    _createPeerConnection(onStateChange, onData) {
+    _createPeerConnection(onStateChange, onData, onSessionExpired) {
         this.pc = new RTCPeerConnection({
             iceServers: this._getIceServers()
         });
+
+        this.dataChannel = this.pc.createDataChannel("coordinates");
+        this.dataChannel.onopen = () => console.log("[RTC] data channel open");
+        this.dataChannel.onmessage = (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                
+                console.log()
+                if (data?.error === "session expired") {
+                    onSessionExpired?.();
+                    return;
+                }
+
+                onData?.(data);
+            } catch (err) {
+                console.error("[RTC] invalid data", e.data);
+            }
+        };
 
         this.pc.onconnectionstatechange = () => {
             const state = this.pc.connectionState;
@@ -55,21 +73,6 @@ class RtcClient {
         };
 
         this.pc.onicecandidate = (event) => this._handleIce(event);
-
-        this.pc.ondatachannel = (event) => {
-            console.log("[RTC] data channel received");
-
-            const channel = event.channel;
-
-            channel.onmessage = (e) => {
-                try {
-                    const data = JSON.parse(e.data);
-                    onData?.(data);
-                } catch (err) {
-                    console.error("[RTC] invalid data", e.data);
-                }
-            };
-        };
     }
 
     _handleIce(event) {
@@ -89,10 +92,10 @@ class RtcClient {
         this.iceQueue = [];
     }
 
-    async start(stream, sessionId, onStateChange, onData) {
+    async start(stream, sessionId, onStateChange, onData, onSessionExpired) {
         this.sessionId = sessionId;
 
-        this._createPeerConnection(onStateChange, onData);
+        this._createPeerConnection(onStateChange, onData, onSessionExpired);
 
         try {
             stream.getTracks().forEach(track => this.pc.addTrack(track, stream));
@@ -122,10 +125,12 @@ class RtcClient {
     close() {
         if (!this.pc || this.pc.signalingState === "closed") return;
 
+        this.dataChannel?.close();
         this.pc.getSenders().forEach(s => s.track?.stop());
         this.pc.close();
 
         this.pc = null;
+        this.dataChannel = null;
         this.iceQueue = [];
         this.remoteDescSet = false;
 
