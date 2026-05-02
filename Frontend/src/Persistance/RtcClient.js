@@ -54,7 +54,6 @@ class RtcClient {
             try {
                 const data = JSON.parse(e.data);
                 
-                console.log()
                 if (data?.error === "session expired") {
                     onSessionExpired?.();
                     return;
