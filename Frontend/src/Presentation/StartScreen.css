@@ -10,9 +10,11 @@
   border: 2px solid white;
   border-radius: 16px;
 
-  padding: 40px 32px;
   max-width: 500px;
   width: 90%;
+  box-sizing: border-box;
+
+  padding: 2rem;
 
   text-align: center;
   color: white;
@@ -35,6 +37,50 @@
 
 .StartText strong {
   color: #fff;
+  font-weight: 700;
+}
+
+/* ✅ contextual emphasis */
+.StartText.warning {
+  color: #ff6b6b;
+}
+
+.StartText.warning strong {
+  color: #ff6b6b;
+}
+
+.StartText.success {
+  color: #4cd964;
+}
+
+.StartText.success strong {
+  color: #4cd964;
+}
+
+.GestureGuide {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.GestureItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 12px;
+  color: #aaa;
+}
+
+.GestureItem img {
+  width: 80px;
+  height: auto;
+  border-radius: 10px;
+  margin-bottom: 6px;
+}
+
+.GestureItem.wrong span {
+  color: #ff6b6b;
 }
 
 @keyframes btnPulse {
@@ -59,7 +105,6 @@
   border-radius: 10px;
 
   cursor: pointer;
-
   transition: all 0.2s ease;
 }
 
@@ -76,4 +121,27 @@
   margin-top: 16px;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 600px) {
+  .StartCard {
+    padding: 20px;
+  }
+
+  .GestureGuide {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .GestureItem img {
+    width: 70px;
+  }
+
+  .StartTitle {
+    font-size: 22px;
+  }
+
+  .StartText {
+    font-size: 13px;
+  }
 }
